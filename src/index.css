@@ -9,7 +9,17 @@ body {
 .timeline-container {
   background: #fafafa;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
+}
+
+/* Allow tooltips to overflow the timeline */
+.vis-timeline {
+  overflow: visible !important;
+}
+
+.vis-panel.vis-center,
+.vis-panel.vis-bottom {
+  overflow: visible !important;
 }
 
 /* Base vis-timeline overrides */
@@ -222,6 +232,8 @@ body {
   line-height: 1.5 !important;
   max-width: 300px !important;
   color: #374151 !important;
+  z-index: 9999 !important;
+  overflow: visible !important;
 }
 
 /* Group/row styling */
