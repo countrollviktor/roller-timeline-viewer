@@ -105,9 +105,9 @@ function formatTooltip(
   // Description - make it prominent for PICTURE events (contains the comment)
   if (event.description) {
     if (event.type === 'PICTURE') {
-      lines.push(`<div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #1f2937;">${event.description}</div>`);
+      lines.push(`<mark>${event.description}</mark>`);
     } else {
-      lines.push(`<div style="margin-bottom: 8px;">${event.description}</div>`);
+      lines.push(`<div>${event.description}</div>`);
     }
   }
 
