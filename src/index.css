@@ -1,0 +1,242 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Timeline Container */
+.timeline-container {
+  background: #fafafa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Base vis-timeline overrides */
+.vis-timeline {
+  border: none !important;
+  font-family: inherit;
+}
+
+.vis-item {
+  border-radius: 4px;
+  font-size: 12px;
+  border-width: 2px;
+}
+
+.vis-item.vis-point .vis-item-content {
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.vis-item .vis-item-content {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+/* Event icon in labels */
+.event-icon {
+  font-style: normal;
+  margin-right: 2px;
+}
+
+/* Icon-only event display */
+.event-icon-only {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Event type: RECOVERED - Green */
+.vis-item.event-recovered {
+  background-color: #dcfce7;
+  border-color: #16a34a;
+  color: #166534;
+}
+
+.vis-item.event-recovered .vis-item-content {
+  background-color: #dcfce7;
+}
+
+/* Event type: REGRINDED - Red */
+.vis-item.event-regrinded {
+  background-color: #fee2e2;
+  border-color: #dc2626;
+  color: #991b1b;
+}
+
+.vis-item.event-regrinded .vis-item-content {
+  background-color: #fee2e2;
+}
+
+/* Event type: PICTURE - Purple */
+.vis-item.event-picture {
+  background-color: #f3e8ff;
+  border-color: #9333ea;
+  color: #6b21a8;
+}
+
+.vis-item.event-picture .vis-item-content {
+  background-color: #f3e8ff;
+}
+
+/* Event type: ENGRAVED - Orange */
+.vis-item.event-engraved {
+  background-color: #ffedd5;
+  border-color: #ea580c;
+  color: #c2410c;
+}
+
+.vis-item.event-engraved .vis-item-content {
+  background-color: #ffedd5;
+}
+
+/* Event type: LINKED - Cyan */
+.vis-item.event-linked {
+  background-color: #cffafe;
+  border-color: #0891b2;
+  color: #0e7490;
+}
+
+.vis-item.event-linked .vis-item-content {
+  background-color: #cffafe;
+}
+
+/* Event type: UNLINKED - Slate (shares row with LINKED) */
+.vis-item.event-unlinked {
+  background-color: #e2e8f0;
+  border-color: #64748b;
+  color: #475569;
+}
+
+.vis-item.event-unlinked .vis-item-content {
+  background-color: #e2e8f0;
+}
+
+/* Event type: INITIALIZED and other gray events */
+.vis-item.event-initialized,
+.vis-item.event-uninitialized,
+.vis-item.event-roller_linked_to_wo {
+  background-color: #f3f4f6;
+  border-color: #6b7280;
+  color: #374151;
+}
+
+.vis-item.event-initialized .vis-item-content,
+.vis-item.event-uninitialized .vis-item-content,
+.vis-item.event-roller_linked_to_wo .vis-item-content {
+  background-color: #f3f4f6;
+}
+
+/* Selected state */
+.vis-item.vis-selected {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+/* Clickable events */
+.vis-item.event-clickable {
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.vis-item.event-clickable:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Gap marker (compressed view) */
+.vis-item.gap-marker {
+  background: repeating-linear-gradient(
+    -45deg,
+    #f3f4f6,
+    #f3f4f6 2px,
+    #e5e7eb 2px,
+    #e5e7eb 4px
+  );
+  border: 2px dashed #9ca3af;
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: default;
+}
+
+.vis-item.gap-marker .vis-item-content {
+  background: transparent;
+  padding: 2px 8px;
+}
+
+.vis-item.gap-marker:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Compressed view event labels */
+.compressed-event-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.2;
+}
+
+.compressed-event-label .event-date {
+  font-size: 9px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.compressed-event-label .event-title {
+  font-size: 11px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tooltip styling */
+.vis-tooltip {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  padding: 12px !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  max-width: 300px !important;
+  color: #374151 !important;
+}
+
+/* Group/row styling */
+.vis-label {
+  background-color: #fafafa;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.vis-labelset .vis-label {
+  padding: 4px 8px;
+}
+
+.vis-group {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Time axis styling */
+.vis-time-axis .vis-text {
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.vis-time-axis .vis-grid.vis-minor {
+  border-color: #e5e7eb;
+}
+
+.vis-time-axis .vis-grid.vis-major {
+  border-color: #d1d5db;
+}
+
+/* Current time line */
+.vis-current-time {
+  background-color: #ef4444;
+  width: 2px;
+}
