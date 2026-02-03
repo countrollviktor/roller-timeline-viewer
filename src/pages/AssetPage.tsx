@@ -25,7 +25,6 @@ export function AssetPage() {
     () => new Set(DEFAULT_EVENT_TYPES)
   );
   const [selectedYears, setSelectedYears] = useState<Set<number>>(() => new Set());
-  const [compressed, setCompressed] = useState(false);
 
   // Fetch asset data
   useEffect(() => {
@@ -92,7 +91,6 @@ export function AssetPage() {
   const handleReset = () => {
     setSelectedTypes(new Set(DEFAULT_EVENT_TYPES));
     setSelectedYears(new Set());
-    setCompressed(false);
   };
 
   // Filter events
@@ -262,8 +260,6 @@ export function AssetPage() {
               selectedYears={selectedYears}
               onYearsChange={setSelectedYears}
               onReset={handleReset}
-              compressed={compressed}
-              onCompressedChange={setCompressed}
             />
           </div>
 
@@ -272,11 +268,6 @@ export function AssetPage() {
             <p className="text-xs sm:text-sm text-gray-500">
               <span className="hidden sm:inline">Scroll to zoom | Drag to pan | Hover for details | Click to open in Countroll</span>
               <span className="sm:hidden">Pinch to zoom | Drag to pan | Tap for details</span>
-              {compressed && (
-                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-                  Compressed
-                </span>
-              )}
             </p>
           </div>
 
@@ -292,7 +283,6 @@ export function AssetPage() {
                 events={filteredEvents}
                 pictures={pictures}
                 assetId={asset.id}
-                compressed={compressed}
                 selectedYears={selectedYears}
               />
             ) : (

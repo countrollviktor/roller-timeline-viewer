@@ -10,8 +10,6 @@ interface TimelineProps {
   events: AssetEvent[];
   pictures?: PictureEvent[];
   assetId: string;
-  compressed?: boolean;
-  gapThresholdDays?: number;
   selectedYears?: Set<number>;
   onEventClick?: (event: AssetEvent) => void;
 }
@@ -41,78 +39,6 @@ export const TIMELINE_GROUPS = [
   { id: 'POSITION', types: ['LINKED', 'UNLINKED'], label: 'Linked', icon: '🔗', color: '#0891b2', bgColor: '#cffafe' },
 ];
 
-const DAY_MS = 1000 * 60 * 60 * 24;
-const STANDARD_GAP_MS = DAY_MS * 14; // Standard gap between events in compressed view
-
-interface CompressedEvent {
-  event: AssetEvent;
-  originalDate: Date;
-  displayDate: Date;
-  displayIndex: number;
-}
-
-interface GapMarker {
-  id: string;
-  displayDate: Date;
-  originalDays: number;
-  beforeIndex: number;
-}
-
-// Calculate compressed timeline - use evenly spaced positioning with gap markers
-function compressTimeline(
-  events: AssetEvent[],
-  thresholdDays: number
-): { compressedEvents: CompressedEvent[]; gaps: GapMarker[] } {
-  const visibleEvents = events
-    .filter(e => e.state === 'VISIBLE')
-    .map(e => ({
-      event: e,
-      originalDate: new Date(e.creationDateTime),
-      displayDate: new Date(e.creationDateTime),
-      displayIndex: 0,
-    }))
-    .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime());
-
-  if (visibleEvents.length === 0) {
-    return { compressedEvents: [], gaps: [] };
-  }
-
-  const gaps: GapMarker[] = [];
-
-  // Use a reference start date for positioning
-  const baseDate = new Date(2020, 0, 1); // Fixed reference point
-  let currentPosition = 0; // Position index
-
-  // First event at base position
-  visibleEvents[0].displayDate = new Date(baseDate.getTime());
-  visibleEvents[0].displayIndex = currentPosition;
-
-  for (let i = 1; i < visibleEvents.length; i++) {
-    const prev = visibleEvents[i - 1];
-    const curr = visibleEvents[i];
-    const gapMs = curr.originalDate.getTime() - prev.originalDate.getTime();
-    const gapDays = gapMs / DAY_MS;
-
-    currentPosition++;
-
-    if (gapDays > thresholdDays) {
-      // Large gap - add gap marker
-      gaps.push({
-        id: `gap-${i}`,
-        displayDate: new Date(baseDate.getTime() + currentPosition * STANDARD_GAP_MS - STANDARD_GAP_MS / 2),
-        originalDays: Math.round(gapDays),
-        beforeIndex: i,
-      });
-    }
-
-    // Position event at regular interval
-    curr.displayDate = new Date(baseDate.getTime() + currentPosition * STANDARD_GAP_MS);
-    curr.displayIndex = currentPosition;
-  }
-
-  return { compressedEvents: visibleEvents, gaps };
-}
-
 // Get Countroll web app URL for an event
 function getEventUrl(assetId: string, eventId: string): string {
   return `https://app.countroll.com/#/thing/${assetId}/events/${eventId}`;
@@ -128,9 +54,7 @@ function getPicturesForEvent(eventId: string, pictures?: PictureEvent[]): Pictur
 function formatTooltip(
   event: AssetEvent,
   assetId: string,
-  pictures?: PictureEvent[],
-  isCompressed?: boolean,
-  originalDate?: Date
+  pictures?: PictureEvent[]
 ): string {
   const displayDate = new Date(event.creationDateTime);
   const date = displayDate.toLocaleDateString('en-US', {
@@ -157,7 +81,6 @@ function formatTooltip(
         color: ${config.color};
         border: 1px solid ${config.color};
       ">${config.label}</span>
-      ${isCompressed ? '<span style="margin-left: 4px; font-size: 10px; color: #9ca3af;">(compressed view)</span>' : ''}
     </div>
   `);
 
@@ -166,7 +89,7 @@ function formatTooltip(
     lines.push(`<div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${event.title}</div>`);
   }
 
-  // Date (show original date in compressed mode)
+  // Date
   lines.push(`<div style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">${date}</div>`);
 
   // Description
@@ -249,7 +172,7 @@ function getGroupForType(type: EventType): string {
   return group ? group.id : type;
 }
 
-// Convert API events to vis-timeline items (normal mode)
+// Convert API events to vis-timeline items
 function eventsToTimelineItems(
   events: AssetEvent[],
   assetId: string,
@@ -271,58 +194,10 @@ function eventsToTimelineItems(
     });
 }
 
-// Format date for compressed view label
-function formatCompressedLabel(date: Date): string {
-  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-}
-
-// Convert compressed events to vis-timeline items
-function compressedEventsToTimelineItems(
-  compressedEvents: CompressedEvent[],
-  gaps: GapMarker[],
-  assetId: string,
-  pictures?: PictureEvent[]
-) {
-  const eventItems = compressedEvents.map(({ event, displayDate, originalDate }) => {
-    const config = EVENT_TYPE_CONFIG[event.type];
-    return {
-      id: event.id,
-      group: getGroupForType(event.type),
-      content: `<div class="compressed-event-label">
-        <span class="event-date">${formatCompressedLabel(originalDate)}</span>
-        <span class="event-icon-only">${config.icon}</span>
-      </div>`,
-      start: displayDate,
-      type: 'point' as const,
-      className: `event-${event.type.toLowerCase()} event-clickable`,
-      title: formatTooltip(event, assetId, pictures, true, originalDate),
-    };
-  });
-
-  // Gap markers don't have a group - they span all
-  const gapItems = gaps.map(gap => ({
-    id: gap.id,
-    content: `${gap.originalDays}d`,
-    start: gap.displayDate,
-    type: 'background' as const,
-    className: 'gap-marker',
-    title: `<div style="text-align: center; padding: 8px;">
-      <div style="font-weight: 600; color: #6b7280;">Gap Compressed</div>
-      <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
-        ${gap.originalDays} days between events
-      </div>
-    </div>`,
-  }));
-
-  return [...eventItems, ...gapItems];
-}
-
 export function Timeline({
   events,
   pictures,
   assetId,
-  compressed = false,
-  gapThresholdDays = 90,
   selectedYears,
   onEventClick,
 }: TimelineProps) {
@@ -343,22 +218,8 @@ export function Timeline({
     const eventTypes = new Set(visibleEvents.map(e => e.type));
     const groups = new DataSet(createGroups(eventTypes));
 
-    // Create dataset based on mode
-    let items;
-    if (compressed) {
-      const { compressedEvents, gaps } = compressTimeline(events, gapThresholdDays);
-      items = new DataSet(compressedEventsToTimelineItems(compressedEvents, gaps, assetId, pictures));
-    } else {
-      items = new DataSet(eventsToTimelineItems(events, assetId, pictures));
-    }
-
-    // Calculate end date with generous padding to ensure labels fit
-    const today = new Date();
-    const lastEventDate = visibleEvents.length > 0
-      ? new Date(Math.max(...visibleEvents.map(e => new Date(e.creationDateTime).getTime())))
-      : today;
-    // Use 180 days (6 months) padding to ensure rightmost labels are fully visible
-    const endDate = new Date(Math.max(today.getTime(), lastEventDate.getTime()) + 180 * DAY_MS);
+    // Create dataset
+    const items = new DataSet(eventsToTimelineItems(events, assetId, pictures));
 
     // Calculate height based on number of groups (not event types, since some are combined)
     const activeGroups = TIMELINE_GROUPS.filter(g => g.types.some(t => eventTypes.has(t)));
@@ -371,7 +232,7 @@ export function Timeline({
     let initialStart: Date;
     let initialEnd: Date;
 
-    if (selectedYears && selectedYears.size > 0 && !compressed) {
+    if (selectedYears && selectedYears.size > 0) {
       // Show selected years: Jan 1 to Dec 31
       const yearsArray = Array.from(selectedYears).sort((a, b) => a - b);
       const minYear = yearsArray[0];
@@ -394,17 +255,17 @@ export function Timeline({
       initialEnd = new Date(now.getFullYear(), 11, 31);
     }
 
-    // Timeline options - set initial window via start/end to avoid fit() issues
+    // Timeline options
     const options = {
       height: `${calculatedHeight}px`,
       start: initialStart,
       end: initialEnd,
-      min: compressed ? undefined : new Date(2015, 0, 1),
-      max: compressed ? undefined : new Date(2030, 0, 1), // Far future to not limit view
-      zoomMin: compressed ? 1000 * 60 * 60 * 24 : 1000 * 60 * 60 * 24 * 7,
-      zoomMax: compressed ? 1000 * 60 * 60 * 24 * 365 * 2 : 1000 * 60 * 60 * 24 * 365 * 10,
+      min: new Date(2015, 0, 1),
+      max: new Date(2030, 0, 1),
+      zoomMin: 1000 * 60 * 60 * 24 * 7, // 1 week
+      zoomMax: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
       orientation: 'top',
-      showCurrentTime: !compressed,
+      showCurrentTime: true,
       zoomable: true,
       moveable: true,
       selectable: true,
@@ -416,10 +277,6 @@ export function Timeline({
         followMouse: false,
         overflowMethod: 'cap',
       },
-      // Hide time axis in compressed mode since dates are not real
-      showMajorLabels: !compressed,
-      showMinorLabels: !compressed,
-      // Group settings
       groupOrder: 'content',
       stack: false,
     };
@@ -432,13 +289,6 @@ export function Timeline({
     timeline.on('select', (properties: { items: string[] }) => {
       if (properties.items.length > 0) {
         const eventId = properties.items[0];
-
-        // Ignore gap marker clicks
-        if (eventId.startsWith('gap-')) {
-          timeline.setSelection([]);
-          return;
-        }
-
         const event = eventsMapRef.current.get(eventId);
 
         if (event) {
@@ -459,7 +309,7 @@ export function Timeline({
       timeline.destroy();
       timelineRef.current = null;
     };
-  }, [events, pictures, assetId, compressed, gapThresholdDays, selectedYears, onEventClick]);
+  }, [events, pictures, assetId, selectedYears, onEventClick]);
 
   return (
     <div className="timeline-container">

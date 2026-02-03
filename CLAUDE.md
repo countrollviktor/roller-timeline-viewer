@@ -34,7 +34,7 @@ roller-timeline-viewer/
 │   │   └── countroll.ts       # API client with OAuth2 auth
 │   ├── components/
 │   │   ├── Timeline.tsx       # Main vis-timeline component
-│   │   ├── Filters.tsx        # Event type & date filters + compress toggle
+│   │   ├── Filters.tsx        # Event type & date filters
 │   │   ├── Legend.tsx         # Event type color legend
 │   │   ├── LoadingSpinner.tsx # Loading state component
 │   │   ├── ErrorState.tsx     # Full-page error display
@@ -84,12 +84,6 @@ roller-timeline-viewer/
 - Full year display when years selected (Jan 1 to Dec 31, or current date for current year)
 - Instant filter updates
 - Reset filters button
-
-### Compressed View
-- Toggle to compress large gaps (>90 days)
-- Evenly spaces events for easier viewing
-- Gap markers show original time spans
-- Events labeled with actual dates
 
 ### Responsive Design
 - Mobile-friendly layout
@@ -237,11 +231,10 @@ VITE_OAUTH_CLIENT_ID=countroll-client
 - Clear button appears when years are selected
 
 ### View Window Management (Timeline.tsx)
-When years are selected (non-compressed mode):
-- Start: Jan 1 of earliest selected year minus 30 days padding
-- End: April 1 of year after latest selected (room for labels)
-- Current year: extends 120 days past today
-- Uses `timeline.setWindow()` API for smooth transitions
+- Initial window set via `start`/`end` options (not setWindow)
+- Selected years: shows Jan 1 to Dec 31 of selected range
+- No years selected: shows first event year to last event year
+- No extra padding added
 
 ---
 

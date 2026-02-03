@@ -9,8 +9,6 @@ interface FiltersProps {
   selectedYears: Set<number>;
   onYearsChange: (years: Set<number>) => void;
   onReset: () => void;
-  compressed: boolean;
-  onCompressedChange: (compressed: boolean) => void;
 }
 
 // Default selected types (for checking if filters are active)
@@ -23,8 +21,6 @@ export function Filters({
   selectedYears,
   onYearsChange,
   onReset,
-  compressed,
-  onCompressedChange,
 }: FiltersProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<number | null>(null);
@@ -133,7 +129,7 @@ export function Filters({
         })}
       </div>
 
-      {/* Row 2: Year Selector + Compress + Reset */}
+      {/* Row 2: Year Selector + Reset */}
       <div className="flex flex-wrap items-center gap-3 sm:gap-4">
         {/* Year Selector */}
         <div className="flex items-center gap-2">
@@ -174,33 +170,6 @@ export function Filters({
             <span className="text-xs text-gray-400">(all)</span>
           )}
         </div>
-
-        {/* Divider (hidden on mobile) */}
-        <div className="hidden sm:block w-px h-6 bg-gray-200" />
-
-        {/* Compressed View Toggle */}
-        <label className="flex items-center gap-2 cursor-pointer">
-          <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Compress gaps</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={compressed}
-            onClick={() => onCompressedChange(!compressed)}
-            className={`
-              relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
-              transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-              ${compressed ? 'bg-blue-600' : 'bg-gray-200'}
-            `}
-          >
-            <span
-              className={`
-                pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0
-                transition duration-200 ease-in-out
-                ${compressed ? 'translate-x-5' : 'translate-x-0'}
-              `}
-            />
-          </button>
-        </label>
 
         {/* Reset Button */}
         {hasActiveFilters && (

@@ -172,55 +172,6 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Gap marker (compressed view) */
-.vis-item.gap-marker {
-  background: repeating-linear-gradient(
-    -45deg,
-    #f3f4f6,
-    #f3f4f6 2px,
-    #e5e7eb 2px,
-    #e5e7eb 4px
-  );
-  border: 2px dashed #9ca3af;
-  color: #6b7280;
-  font-size: 10px;
-  font-weight: 600;
-  cursor: default;
-}
-
-.vis-item.gap-marker .vis-item-content {
-  background: transparent;
-  padding: 2px 8px;
-}
-
-.vis-item.gap-marker:hover {
-  transform: none;
-  box-shadow: none;
-}
-
-/* Compressed view event labels */
-.compressed-event-label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  line-height: 1.2;
-}
-
-.compressed-event-label .event-date {
-  font-size: 9px;
-  font-weight: 600;
-  opacity: 0.8;
-}
-
-.compressed-event-label .event-title {
-  font-size: 11px;
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Tooltip styling */
 .vis-tooltip {
   background-color: white !important;
