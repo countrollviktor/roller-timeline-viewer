@@ -71,7 +71,12 @@ roller-timeline-viewer/
   - **LINKED** (Cyan) - Position linked
   - **UNLINKED** (Slate) - Position unlinked
 - Hover tooltips with full event details and pictures
+- **PICTURE comments highlighted** with yellow callout box in tooltips
 - Click to open event in Countroll web app
+
+### Navigation
+- **Home page** with asset ID input field and sample asset link
+- **Quick navigation** input in AssetPage header to jump to another asset
 
 ### Filtering
 - Toggle event types on/off (ENGRAVED hidden by default)
@@ -176,6 +181,7 @@ VITE_OAUTH_CLIENT_ID=countroll-client
 - Selected years: shows Jan 1 to Dec 31 of selected range
 - No years selected: shows first event year to last event year
 - Icon-only markers with hidden left labels
+- Tooltip HTML: vis-timeline strips `style` and `class` attributes, so use HTML elements (e.g., `<mark>`) styled via CSS
 
 ### Filters (Filters.tsx)
 - Drag-to-select years: mousedown starts, mouseenter extends
