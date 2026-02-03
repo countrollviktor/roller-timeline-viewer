@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { fetchAsset, fetchPictures, isApiConfigured } from '../api/countroll';
 import { Timeline, MAIN_EVENT_TYPES } from '../components/Timeline';
 import { Filters } from '../components/Filters';
@@ -10,6 +10,18 @@ import type { EventType, AssetEvent, Asset, PictureEvent } from '../types';
 
 export function AssetPage() {
   const { assetId } = useParams<{ assetId: string }>();
+  const navigate = useNavigate();
+
+  // Navigation state
+  const [searchId, setSearchId] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchId.trim()) {
+      navigate(`/asset/${searchId.trim()}`);
+      setSearchId('');
+    }
+  };
 
   // Data state
   const [asset, setAsset] = useState<Asset | null>(null);
@@ -194,11 +206,29 @@ export function AssetPage() {
               </div>
               <p className="text-gray-500 mt-1 text-sm sm:text-base truncate">{asset.description}</p>
             </div>
-            <div className="text-left sm:text-right text-sm text-gray-500 flex-shrink-0">
-              <p>Asset ID: {asset.id}</p>
-              {asset.currentPosition && (
-                <p className="truncate">Location: {asset.currentPosition.name}</p>
-              )}
+            <div className="flex flex-col items-end gap-2">
+              <form onSubmit={handleSearch} className="flex gap-1">
+                <input
+                  type="text"
+                  value={searchId}
+                  onChange={e => setSearchId(e.target.value)}
+                  placeholder="Go to asset..."
+                  className="w-28 sm:w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <button
+                  type="submit"
+                  disabled={!searchId.trim()}
+                  className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Go
+                </button>
+              </form>
+              <div className="text-right text-sm text-gray-500">
+                <p>Asset ID: {asset.id}</p>
+                {asset.currentPosition && (
+                  <p className="truncate">Location: {asset.currentPosition.name}</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
