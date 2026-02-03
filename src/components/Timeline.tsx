@@ -94,21 +94,21 @@ function formatTooltip(
     </div>
   `);
 
-  // Title - make it prominent for PICTURE events (usually contains the comment)
+  // Title
   if (event.title) {
-    if (event.type === 'PICTURE') {
-      lines.push(`<div style="font-weight: 700; font-size: 16px; margin-bottom: 6px; color: #1f2937;">${event.title}</div>`);
-    } else {
-      lines.push(`<div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${event.title}</div>`);
-    }
+    lines.push(`<div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${event.title}</div>`);
   }
 
   // Date
   lines.push(`<div style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">${date}</div>`);
 
-  // Description
+  // Description - make it prominent for PICTURE events (contains the comment)
   if (event.description) {
-    lines.push(`<div style="margin-bottom: 8px;">${event.description}</div>`);
+    if (event.type === 'PICTURE') {
+      lines.push(`<div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #1f2937;">${event.description}</div>`);
+    } else {
+      lines.push(`<div style="margin-bottom: 8px;">${event.description}</div>`);
+    }
   }
 
   // Details grid
