@@ -409,8 +409,8 @@ export function Timeline({
       moveable: true,
       selectable: true,
       margin: {
-        item: 20,
-        axis: 40,
+        item: 5,
+        axis: 5,
       },
       tooltip: {
         followMouse: false,

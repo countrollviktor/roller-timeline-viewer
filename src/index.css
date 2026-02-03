@@ -19,14 +19,15 @@ body {
 }
 
 .vis-item {
-  border-radius: 4px;
+  border-radius: 3px;
   font-size: 12px;
-  border-width: 2px;
+  border-width: 1px;
 }
 
 .vis-item.vis-point .vis-item-content {
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  min-width: auto;
 }
 
 .vis-item .vis-item-content {
@@ -44,8 +45,24 @@ body {
 
 /* Icon-only event display */
 .event-icon-only {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
+  display: block;
+}
+
+/* Hide the point dot, show only the icon */
+.vis-item.vis-point .vis-dot {
+  display: none !important;
+}
+
+/* Hide the group labels on the left */
+.vis-labelset {
+  display: none !important;
+}
+
+/* Adjust left panel width to 0 since we hide labels */
+.vis-left {
+  width: 0 !important;
 }
 
 /* Event type: RECOVERED - Green */
