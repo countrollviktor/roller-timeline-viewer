@@ -143,15 +143,15 @@ Headers: Authorization: Bearer {token}, Third-Party: {id}
 Create a `.env` file from `.env.example`:
 
 ```env
-# Countroll API credentials
-VITE_OAUTH_USERNAME=your-username
-VITE_OAUTH_PASSWORD=your-password
-VITE_THIRD_PARTY_ID=your-third-party-id
+# Your Countroll Credentials
+VITE_OAUTH_USERNAME=your_username_here
+VITE_OAUTH_PASSWORD=your_password_here
+VITE_THIRD_PARTY_ID=2
 
-# Optional overrides
-VITE_COUNTROLL_API_URL=https://api.countroll.com
-VITE_OAUTH_TOKEN_URL=https://sso.countroll.com/realms/countroll-realm/protocol/openid-connect/token
-VITE_OAUTH_CLIENT_ID=countroll-client
+# Optional overrides (defaults shown)
+# VITE_COUNTROLL_API_URL=https://api.countroll.com
+# VITE_OAUTH_TOKEN_URL=https://sso.countroll.com/realms/countroll-realm/protocol/openid-connect/token
+# VITE_OAUTH_CLIENT_ID=countroll-client
 ```
 
 ---
