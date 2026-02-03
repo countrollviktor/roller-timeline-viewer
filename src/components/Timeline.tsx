@@ -367,9 +367,38 @@ export function Timeline({
     const headerHeight = 40;
     const calculatedHeight = Math.max(200, groupCount * rowHeight + headerHeight);
 
-    // Timeline options - no max limit to allow full visibility
+    // Calculate initial window
+    let initialStart: Date;
+    let initialEnd: Date;
+
+    if (selectedYears && selectedYears.size > 0 && !compressed) {
+      // Show selected years: Jan 1 to Dec 31
+      const yearsArray = Array.from(selectedYears).sort((a, b) => a - b);
+      const minYear = yearsArray[0];
+      const maxYear = yearsArray[yearsArray.length - 1];
+
+      initialStart = new Date(minYear, 0, 1); // Jan 1
+      initialEnd = new Date(maxYear, 11, 31); // Dec 31
+    } else if (visibleEvents.length > 0) {
+      // Fit to event range: first event year Jan 1 to last event year Dec 31
+      const eventDates = visibleEvents.map(e => new Date(e.creationDateTime));
+      const minYear = Math.min(...eventDates.map(d => d.getFullYear()));
+      const maxYear = Math.max(...eventDates.map(d => d.getFullYear()));
+
+      initialStart = new Date(minYear, 0, 1); // Jan 1 of first event year
+      initialEnd = new Date(maxYear, 11, 31); // Dec 31 of last event year
+    } else {
+      // No events - show current year
+      const now = new Date();
+      initialStart = new Date(now.getFullYear(), 0, 1);
+      initialEnd = new Date(now.getFullYear(), 11, 31);
+    }
+
+    // Timeline options - set initial window via start/end to avoid fit() issues
     const options = {
       height: `${calculatedHeight}px`,
+      start: initialStart,
+      end: initialEnd,
       min: compressed ? undefined : new Date(2015, 0, 1),
       max: compressed ? undefined : new Date(2030, 0, 1), // Far future to not limit view
       zoomMin: compressed ? 1000 * 60 * 60 * 24 : 1000 * 60 * 60 * 24 * 7,
@@ -424,41 +453,6 @@ export function Timeline({
         timeline.setSelection([]);
       }
     });
-
-    // Set view range based on selected years or fit to events
-    if (selectedYears && selectedYears.size > 0 && !compressed) {
-      const yearsArray = Array.from(selectedYears).sort((a, b) => a - b);
-      const minYear = yearsArray[0];
-      const maxYear = yearsArray[yearsArray.length - 1];
-      const currentYear = new Date().getFullYear();
-
-      // Start from Jan 1 of first selected year (with small padding before)
-      const startDate = new Date(minYear, 0, 1);
-      startDate.setDate(startDate.getDate() - 30); // 30 days before Jan 1
-
-      // End with generous padding to ensure labels are visible
-      let windowEnd: Date;
-      if (maxYear >= currentYear) {
-        // Current year: end at today + 120 days (4 months)
-        windowEnd = new Date(Date.now() + 120 * DAY_MS);
-      } else {
-        // Past years: end at April of next year to show all labels fully
-        windowEnd = new Date(maxYear + 1, 3, 1); // April 1 of next year
-      }
-
-      timeline.setWindow(startDate, windowEnd, { animation: false });
-    } else {
-      // No years selected or compressed mode: fit to events with padding
-      timeline.fit({ animation: false });
-      // Add extra padding on the right by extending the window
-      const window = timeline.getWindow();
-      const padding = (window.end.getTime() - window.start.getTime()) * 0.15; // 15% padding
-      timeline.setWindow(
-        new Date(window.start.getTime() - padding * 0.3),
-        new Date(window.end.getTime() + padding),
-        { animation: false }
-      );
-    }
 
     // Cleanup on unmount
     return () => {
