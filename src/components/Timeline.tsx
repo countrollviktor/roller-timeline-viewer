@@ -57,13 +57,13 @@ function formatTooltip(
   pictures?: PictureEvent[]
 ): string {
   const displayDate = new Date(event.creationDateTime);
-  const date = displayDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+
+  // For REGRINDED and RECOVERED, show date only; for others include time
+  const showTimeTypes = ['PICTURE', 'LINKED', 'UNLINKED', 'ENGRAVED', 'INITIALIZED', 'UNINITIALIZED'];
+  const dateOptions: Intl.DateTimeFormatOptions = showTimeTypes.includes(event.type)
+    ? { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+    : { year: 'numeric', month: 'short', day: 'numeric' };
+  const date = displayDate.toLocaleDateString('en-US', dateOptions);
 
   const config = EVENT_TYPE_CONFIG[event.type];
   const lines: string[] = [];
@@ -99,9 +99,6 @@ function formatTooltip(
 
   // Details grid
   const details: string[] = [];
-  if (event.reference) {
-    details.push(`<div><span style="color: #6b7280;">Work Order:</span> ${event.reference}</div>`);
-  }
   if (event.diameter) {
     details.push(`<div><span style="color: #6b7280;">Diameter:</span> ${event.diameter} mm</div>`);
   }
@@ -139,9 +136,6 @@ function formatTooltip(
       lines.push(`</div>`);
     }
   }
-
-  // Click hint
-  lines.push(`<div style="margin-top: 8px; font-size: 11px; color: #9ca3af;">Click to open in Countroll</div>`);
 
   return lines.join('');
 }
