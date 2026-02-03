@@ -50,6 +50,19 @@ function getPicturesForEvent(eventId: string, pictures?: PictureEvent[]): Pictur
   return pictures.find(p => p.url.includes(eventId));
 }
 
+// Format date as "25 Aug 2025" or "25 Aug 2025, 14:30"
+function formatDate(date: Date, includeTime: boolean): string {
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+  const year = date.getFullYear();
+
+  if (includeTime) {
+    const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${day} ${month} ${year}, ${time}`;
+  }
+  return `${day} ${month} ${year}`;
+}
+
 // Format tooltip content
 function formatTooltip(
   event: AssetEvent,
@@ -60,10 +73,7 @@ function formatTooltip(
 
   // For REGRINDED and RECOVERED, show date only; for others include time
   const showTimeTypes = ['PICTURE', 'LINKED', 'UNLINKED', 'ENGRAVED', 'INITIALIZED', 'UNINITIALIZED'];
-  const dateOptions: Intl.DateTimeFormatOptions = showTimeTypes.includes(event.type)
-    ? { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
-    : { year: 'numeric', month: 'short', day: 'numeric' };
-  const date = displayDate.toLocaleDateString('en-US', dateOptions);
+  const date = formatDate(displayDate, showTimeTypes.includes(event.type));
 
   const config = EVENT_TYPE_CONFIG[event.type];
   const lines: string[] = [];
@@ -92,9 +102,13 @@ function formatTooltip(
   // Date
   lines.push(`<div style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">${date}</div>`);
 
-  // Description
+  // Description - make it prominent for PICTURE events
   if (event.description) {
-    lines.push(`<div style="margin-bottom: 8px;">${event.description}</div>`);
+    if (event.type === 'PICTURE') {
+      lines.push(`<div style="margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #374151;">${event.description}</div>`);
+    } else {
+      lines.push(`<div style="margin-bottom: 8px;">${event.description}</div>`);
+    }
   }
 
   // Details grid
