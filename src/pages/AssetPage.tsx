@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { fetchAsset, fetchPictures, isApiConfigured } from '../api/countroll';
 import { Timeline, MAIN_EVENT_TYPES } from '../components/Timeline';
 import { Filters } from '../components/Filters';
+import { EventSidebar } from '../components/EventSidebar';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -37,6 +38,9 @@ export function AssetPage() {
     () => new Set(DEFAULT_EVENT_TYPES)
   );
   const [selectedYears, setSelectedYears] = useState<Set<number>>(() => new Set());
+
+  // Sidebar state
+  const [selectedEvent, setSelectedEvent] = useState<AssetEvent | null>(null);
 
   // Fetch asset data
   useEffect(() => {
@@ -133,15 +137,6 @@ export function AssetPage() {
     return asset.events.filter(e => e.state === 'VISIBLE');
   }, [asset]);
 
-  // Date range of all events
-  const totalDateRange = useMemo(() => {
-    if (allVisibleEvents.length === 0) return null;
-    return {
-      start: new Date(Math.min(...allVisibleEvents.map(e => new Date(e.creationDateTime).getTime()))),
-      end: new Date(Math.max(...allVisibleEvents.map(e => new Date(e.creationDateTime).getTime()))),
-    };
-  }, [allVisibleEvents]);
-
   // Available years from events
   const availableYears = useMemo(() => {
     if (allVisibleEvents.length === 0) return [];
@@ -237,22 +232,7 @@ export function AssetPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
         {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
-            <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              {isFiltered ? 'Showing' : 'Events'}
-            </dt>
-            <dd className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">
-              {isFiltered ? (
-                <span>
-                  {filteredEvents.length}
-                  <span className="text-sm font-normal text-gray-500"> / {allVisibleEvents.length}</span>
-                </span>
-              ) : (
-                allVisibleEvents.length
-              )}
-            </dd>
-          </div>
+        <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
             <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Type</dt>
             <dd className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">{asset.type}</dd>
@@ -267,14 +247,6 @@ export function AssetPage() {
             <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
               <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Length</dt>
               <dd className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">{asset.length} mm</dd>
-            </div>
-          )}
-          {totalDateRange && (
-            <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
-              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">History</dt>
-              <dd className="mt-1 text-lg sm:text-xl font-semibold text-gray-900">
-                {totalDateRange.start.getFullYear()} - {totalDateRange.end.getFullYear()}
-              </dd>
             </div>
           )}
         </div>
@@ -314,6 +286,7 @@ export function AssetPage() {
                 pictures={pictures}
                 assetId={asset.id}
                 selectedYears={selectedYears}
+                onEventClick={setSelectedEvent}
               />
             ) : (
               <EmptyState
@@ -326,6 +299,17 @@ export function AssetPage() {
               />
             )}
           </div>
+
+          {/* Event count */}
+          {allVisibleEvents.length > 0 && (
+            <div className="px-4 sm:px-6 py-2 border-t border-gray-100 text-sm text-gray-500">
+              {isFiltered ? (
+                <span>Showing {filteredEvents.length} of {allVisibleEvents.length} events</span>
+              ) : (
+                <span>{allVisibleEvents.length} events</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Debug: Event list */}
@@ -353,6 +337,16 @@ export function AssetPage() {
           </a>
         </p>
       </footer>
+
+      {/* Event Sidebar */}
+      {selectedEvent && (
+        <EventSidebar
+          event={selectedEvent}
+          pictures={pictures}
+          assetId={asset.id}
+          onClose={() => setSelectedEvent(null)}
+        />
+      )}
     </div>
   );
 }
