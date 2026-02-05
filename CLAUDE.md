@@ -48,7 +48,8 @@ roller-timeline-viewer/
 ├── index.html                  # HTML entry (title: "Roller Timeline Viewer")
 ├── .env.example                # Environment variables template
 ├── vite.config.ts              # Vite config with API proxy
-└── CLAUDE.md                   # This file
+├── CLAUDE.md                   # This file
+└── LESSONS_LEARNED.md          # Technical gotchas & patterns discovered
 ```
 
 ---
