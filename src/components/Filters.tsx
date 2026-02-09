@@ -146,7 +146,7 @@ export function Filters({
                   className={`
                     px-2 py-1 text-xs sm:text-sm rounded transition-all cursor-pointer
                     ${isSelected
-                      ? 'bg-blue-600 text-white font-medium'
+                      ? 'bg-[#1DB898] text-white font-medium'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }
                   `}

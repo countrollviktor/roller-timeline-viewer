@@ -195,7 +195,7 @@ export function AssetPage() {
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                   {asset.preferredLabel}
                 </h1>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800 whitespace-nowrap">
                   {asset.status.replace(/_/g, ' ')}
                 </span>
               </div>
@@ -208,12 +208,12 @@ export function AssetPage() {
                   value={searchId}
                   onChange={e => setSearchId(e.target.value)}
                   placeholder="Go to asset..."
-                  className="w-28 sm:w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-28 sm:w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#1DB898]"
                 />
                 <button
                   type="submit"
                   disabled={!searchId.trim()}
-                  className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                  className="px-2 py-1 text-sm bg-[#1DB898] text-white rounded hover:bg-[#189e83] disabled:opacity-50"
                 >
                   Go
                 </button>
@@ -331,7 +331,7 @@ export function AssetPage() {
             href={`https://app.countroll.com/#/thing/${asset.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-500 hover:text-blue-600 underline"
+            className="text-[#1DB898] hover:text-[#189e83] underline"
           >
             Countroll
           </a>

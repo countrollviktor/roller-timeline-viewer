@@ -14,10 +14,10 @@ function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-emerald-50 flex items-center justify-center p-4">
       <div className="text-center max-w-md w-full">
         {/* Logo/Icon */}
-        <div className="mx-auto w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+        <div className="mx-auto w-20 h-20 bg-[#1DB898] rounded-2xl flex items-center justify-center mb-6 shadow-lg">
           <svg
             className="w-10 h-10 text-white"
             fill="none"
@@ -48,12 +48,12 @@ function HomePage() {
               value={assetId}
               onChange={e => setAssetId(e.target.value)}
               placeholder="Enter asset ID..."
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg"
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1DB898] focus:border-transparent text-center text-lg"
             />
             <button
               type="submit"
               disabled={!assetId.trim()}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="px-6 py-3 bg-[#1DB898] text-white rounded-lg hover:bg-[#189e83] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               View
             </button>
@@ -65,7 +65,7 @@ function HomePage() {
           <span>Or try a sample: </span>
           <a
             href="/asset/6168"
-            className="text-blue-600 hover:text-blue-800 font-medium underline"
+            className="text-[#1DB898] hover:text-[#189e83] font-medium underline"
           >
             Asset 6168
           </a>

@@ -164,7 +164,7 @@ body {
 
 /* Selected state */
 .vis-item.vis-selected {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 3px rgba(29, 184, 152, 0.5);
 }
 
 /* Clickable events */
@@ -244,6 +244,6 @@ body {
 
 /* Current time line */
 .vis-current-time {
-  background-color: #ef4444;
+  background-color: #1DB898;
   width: 2px;
 }

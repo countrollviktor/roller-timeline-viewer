@@ -141,7 +141,7 @@ export function EventSidebar({ event, pictures, assetId, onClose }: EventSidebar
                     href={pic.downloadUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors"
+                    className="block aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-[#1DB898] transition-colors"
                   >
                     <img
                       src={pic.downloadUrl}
@@ -161,7 +161,7 @@ export function EventSidebar({ event, pictures, assetId, onClose }: EventSidebar
             href={eventUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="block w-full text-center px-4 py-2 bg-[#1DB898] text-white rounded-lg hover:bg-[#189e83] transition-colors"
           >
             Open in Countroll
           </a>
