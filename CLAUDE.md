@@ -36,6 +36,7 @@ roller-timeline-viewer/
 │   │   ├── Timeline.tsx        # Main vis-timeline component + tooltip formatting
 │   │   ├── Filters.tsx         # Event type & year filters
 │   │   ├── EventSidebar.tsx    # Slide-in sidebar for event details + images
+│   │   ├── RollerDiagram.tsx   # SVG roller sketch with dimension callouts
 │   │   ├── LoadingSpinner.tsx  # Loading state component
 │   │   ├── ErrorState.tsx      # Full-page error display
 │   │   └── EmptyState.tsx      # Empty/no-results display
@@ -48,6 +49,9 @@ roller-timeline-viewer/
 ├── index.html                  # HTML entry (title: "Roller Timeline Viewer")
 ├── .env.example                # Environment variables template
 ├── vite.config.ts              # Vite config with API proxy
+├── public/
+│   ├── vite.svg                # Vite favicon
+│   └── countroll-logo.svg      # Countroll brand logo (teal + gray wordmark)
 ├── CLAUDE.md                   # This file
 └── LESSONS_LEARNED.md          # Technical gotchas & patterns discovered
 ```
@@ -81,8 +85,15 @@ roller-timeline-viewer/
 - "Open in Countroll" button
 - Backdrop click or X button to close
 
+### Roller Diagram (RollerDiagram.tsx)
+- SVG technical drawing of the roller with shafts and 3D gradient
+- **Proportionally scaled** to real diameter/length ratio
+- Teal dimension callout lines with arrowheads for diameter and length
+- Adapts viewBox to fit the roller shape (long-thin vs short-fat)
+
 ### Navigation
-- **Home page** (App.tsx) with asset ID input field and sample asset link
+- **Countroll logo** on every page (home, asset, loading, error states), links to home
+- **Home page** (App.tsx) with Countroll logo, asset ID input, and sample asset link
 - **Quick navigation** input in AssetPage header to jump to another asset by ID
 - Routes: `/` (home), `/asset/:assetId` (timeline)
 
@@ -98,7 +109,7 @@ roller-timeline-viewer/
 ### Responsive Design
 - Mobile-friendly layout
 - Touch gestures supported
-- Adaptive stats grid (Type, Diameter, Length)
+- Adaptive stats grid (Type, Diameter, Length) with roller diagram
 
 ### Error Handling
 - Loading spinner during API calls
@@ -210,10 +221,16 @@ VITE_THIRD_PARTY_ID=2
 - Clear button appears when years are selected
 
 ### AssetPage (AssetPage.tsx)
-- Stats row: Type, Diameter, Length cards (History card removed)
+- Countroll logo in header (links to home)
+- Stats row: Type, Diameter, Length cards + RollerDiagram SVG
 - Event count shown as subtle text below timeline
 - Quick navigation input in header to jump to another asset
 - Defensive `(asset.events || [])` guards — API may return assets without `events` array
+
+### Branding
+- All accent colors use Countroll teal `#1DB898` (hover: `#189e83`)
+- Countroll logo SVG at `public/countroll-logo.svg` — sourced from countroll.com
+- No blue/indigo — teal throughout (buttons, links, focus rings, timeline current-time line)
 
 ---
 
