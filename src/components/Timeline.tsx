@@ -232,7 +232,7 @@ function eventsToTimelineItems(
         group: getGroupForEvent(event),
         content: `<span class="event-icon-only">${config.icon}</span>`,
         start: new Date(event.creationDateTime),
-        type: 'point' as const,
+        type: 'box' as const,
         className: `event-${event.type.toLowerCase()} event-clickable`,
         title: formatTooltip(event, assetId, pictures),
       };
@@ -322,6 +322,7 @@ export function Timeline({
         followMouse: false,
         overflowMethod: 'cap',
       },
+      align: 'center',
       groupOrder: 'content',
       stack: false,
     };

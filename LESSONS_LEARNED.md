@@ -204,3 +204,60 @@ useEffect(() => {
 ```
 
 **Takeaway:** Always guard async state updates with a cleanup flag when the triggering dependency can change before the async operation completes.
+
+---
+
+## 11. vis-timeline `align` option only works for `box` items, not `point`
+
+**Problem:** Point items (`type: 'point'`) always align their left edge to the event date. The `align: 'center'` timeline option has no effect on point items — it only applies to `box`, `range`, and `background` types.
+
+**Failed attempt:** Using CSS `transform: translateX(-50%)` to shift point items. vis-timeline positions items using inline `transform` styles, so any CSS transform override (even with `!important`) either gets overridden or breaks positioning entirely (items stuck to the left border).
+
+**Solution:** Switch from `type: 'point'` to `type: 'box'` and set `align: 'center'`. Then hide the box's decorative line and dot via CSS:
+
+```css
+.vis-item.vis-box .vis-line,
+.vis-item.vis-box .vis-dot {
+  display: none !important;
+}
+```
+
+**Takeaway:** Don't fight a library's inline positioning styles with CSS overrides. Use the library's own layout options (item types, alignment) to get the desired positioning.
+
+---
+
+## 12. Dynamic timeline groups for data-driven rows
+
+**Problem:** RECOVERED events all shared a single row, making it hard to distinguish between different cover materials. The static group configuration (`TIMELINE_GROUPS` array) didn't support data-driven grouping.
+
+**Solution:** Handle RECOVERED groups dynamically by extracting unique `coverMaterial` values from the events and creating a separate group per material:
+
+```typescript
+function getRecoveredMaterials(events: AssetEvent[]): string[] {
+  const materials = new Set<string>();
+  for (const e of events) {
+    if (e.type === 'RECOVERED' && e.state === 'VISIBLE') {
+      materials.add(e.coverMaterial || 'Unknown');
+    }
+  }
+  return Array.from(materials).sort();
+}
+```
+
+Group IDs use a prefix pattern (`RECOVERED:Rubber`, `RECOVERED:PU`) to avoid collisions with static group IDs.
+
+**Takeaway:** When timeline rows need to represent data values rather than fixed categories, generate groups dynamically from the event data. Keep a clear ID naming convention to avoid collisions with static groups.
+
+---
+
+## 13. API responses may omit expected fields
+
+**Problem:** The app crashed with "Cannot read properties of undefined (reading 'filter')" when `asset.events` was undefined. The API sometimes returns asset objects without the `events` array.
+
+**Solution:** Add defensive fallbacks wherever `asset.events` is accessed:
+
+```typescript
+(asset.events || []).filter(...)
+```
+
+**Takeaway:** Never assume API responses contain all fields defined in your TypeScript interface. Add runtime guards for any field accessed in render paths, especially arrays that get `.filter()`, `.map()`, or `.length`.

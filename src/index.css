@@ -40,6 +40,7 @@ body {
   min-width: auto;
 }
 
+
 .vis-item .vis-item-content {
   white-space: nowrap;
   overflow: hidden;
@@ -62,6 +63,12 @@ body {
 
 /* Hide the point dot, show only the icon */
 .vis-item.vis-point .vis-dot {
+  display: none !important;
+}
+
+/* Hide the box line connecting to the time axis */
+.vis-item.vis-box .vis-line,
+.vis-item.vis-box .vis-dot {
   display: none !important;
 }
 

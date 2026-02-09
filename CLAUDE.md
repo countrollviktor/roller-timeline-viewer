@@ -64,9 +64,10 @@ roller-timeline-viewer/
 - View window shows Jan 1 to Dec 31 of relevant years
 
 ### Event Display
-- **Icon-only markers** - Clean, compact display with colored icon boxes
-- No left-side labels (hidden via CSS for cleaner look)
+- **Icon-only box markers** centered on their exact date (`type: 'box'`, `align: 'center'`)
+- Left-side row labels showing event type or material name
 - Color-coded by event type (see Event Types table below)
+- **RECOVERED events split by material** — separate rows per `coverMaterial` (e.g. "Rubber", "PU")
 - Hover tooltips with event details and picture thumbnails
 - **PICTURE comments highlighted** with yellow callout (`<mark>` element, styled in CSS)
 - **Click opens sidebar** with full event details and all images
@@ -186,11 +187,16 @@ VITE_THIRD_PARTY_ID=2
 - Automatic proxy routing in development mode (`/api` and `/auth` prefixes)
 
 ### Timeline (Timeline.tsx)
+- Items use `type: 'box'` with `align: 'center'` so icons are centered on their exact date
+- Box line and dot hidden via CSS (`.vis-item.vis-box .vis-line, .vis-dot { display: none }`)
 - Initial window set via `start`/`end` options (not `setWindow()` — that causes zoom jumps)
 - Selected years: shows Jan 1 to Dec 31 of selected range
 - No years selected: shows first event year to last event year
-- Icon-only markers with hidden left labels (CSS: `.vis-labelset { display: none }`)
+- Left-side row labels visible, showing icon + type/material name with colored left border
+- **RECOVERED rows are dynamic** — split by `coverMaterial` field, creating separate groups per material
+- Static groups for other event types; LINKED + UNLINKED share a "Position" row
 - **Tooltip HTML gotcha:** vis-timeline strips `style` and `class` attributes from tooltip HTML for security. Use HTML elements like `<mark>` and style them via CSS selectors (`.vis-tooltip mark {}`)
+- **Point vs Box centering:** `type: 'point'` items cannot be centered — the `align` option only works for `box`, `range`, and `background` types. vis-timeline positions point items using `transform` inline styles, so CSS `transform` overrides break positioning entirely
 - Click handler calls `onEventClick` prop to open the sidebar
 
 ### Event Sidebar (EventSidebar.tsx)
@@ -207,6 +213,7 @@ VITE_THIRD_PARTY_ID=2
 - Stats row: Type, Diameter, Length cards (History card removed)
 - Event count shown as subtle text below timeline
 - Quick navigation input in header to jump to another asset
+- Defensive `(asset.events || [])` guards — API may return assets without `events` array
 
 ---
 
