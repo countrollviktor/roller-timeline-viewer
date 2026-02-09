@@ -30,9 +30,9 @@ export const EVENT_TYPE_CONFIG: Record<EventType, { label: string; icon: string;
 // Main event types to show in filters (order matters for display)
 export const MAIN_EVENT_TYPES: EventType[] = ['RECOVERED', 'REGRINDED', 'PICTURE', 'LINKED', 'UNLINKED', 'ENGRAVED'];
 
-// Groups for timeline rows (order matters)
+// Static groups for timeline rows (order matters)
+// RECOVERED is handled dynamically — split by coverMaterial
 export const TIMELINE_GROUPS = [
-  { id: 'RECOVERED', types: ['RECOVERED'] },
   { id: 'REGRINDED', types: ['REGRINDED'] },
   { id: 'PICTURE', types: ['PICTURE'] },
   { id: 'ENGRAVED', types: ['ENGRAVED'] },
@@ -154,30 +154,67 @@ function formatTooltip(
   return lines.join('');
 }
 
-// Create groups for timeline rows
-function createGroups(eventTypes: Set<string>) {
-  return TIMELINE_GROUPS
-    .filter(group => group.types.some(t => eventTypes.has(t)))
-    .map(group => {
-      // Use custom label/icon/color if defined, otherwise use first type's config
-      const config = group.label
-        ? { label: group.label, icon: group.icon, color: group.color, bgColor: group.bgColor }
-        : EVENT_TYPE_CONFIG[group.types[0] as EventType];
-      return {
-        id: group.id,
-        content: `<span style="display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 14px;">${config.icon}</span>
-          <span style="font-size: 12px; font-weight: 500; color: ${config.color};">${config.label}</span>
-        </span>`,
-        style: `background-color: ${config.bgColor}; border-left: 3px solid ${config.color};`,
-      };
-    });
+// Get unique materials from RECOVERED events
+function getRecoveredMaterials(events: AssetEvent[]): string[] {
+  const materials = new Set<string>();
+  for (const e of events) {
+    if (e.type === 'RECOVERED' && e.state === 'VISIBLE') {
+      materials.add(e.coverMaterial || 'Unknown');
+    }
+  }
+  return Array.from(materials).sort();
 }
 
-// Get the group ID for an event type
-function getGroupForType(type: EventType): string {
-  const group = TIMELINE_GROUPS.find(g => g.types.includes(type));
-  return group ? group.id : type;
+// Get the group ID for a RECOVERED event based on its material
+function getRecoveredGroupId(material?: string): string {
+  return `RECOVERED:${material || 'Unknown'}`;
+}
+
+// Build a group label with icon and text
+function groupLabel(icon: string, text: string, color: string): string {
+  return `<span style="color:${color}">${icon}</span> ${text}`;
+}
+
+// Create groups for timeline rows
+function createGroups(eventTypes: Set<string>, events: AssetEvent[]) {
+  const groups: { id: string; content: string; style: string }[] = [];
+
+  // Dynamic RECOVERED groups by material
+  if (eventTypes.has('RECOVERED')) {
+    const config = EVENT_TYPE_CONFIG.RECOVERED;
+    const materials = getRecoveredMaterials(events);
+    for (const material of materials) {
+      groups.push({
+        id: getRecoveredGroupId(material),
+        content: groupLabel(config.icon, material, config.color),
+        style: `border-left: 3px solid ${config.color};`,
+      });
+    }
+  }
+
+  // Static groups
+  for (const group of TIMELINE_GROUPS) {
+    if (!group.types.some(t => eventTypes.has(t))) continue;
+    const config = group.label
+      ? { label: group.label, icon: group.icon, color: group.color }
+      : EVENT_TYPE_CONFIG[group.types[0] as EventType];
+    groups.push({
+      id: group.id,
+      content: groupLabel(config.icon!, config.label!, config.color!),
+      style: `border-left: 3px solid ${config.color};`,
+    });
+  }
+
+  return groups;
+}
+
+// Get the group ID for an event
+function getGroupForEvent(event: AssetEvent): string {
+  if (event.type === 'RECOVERED') {
+    return getRecoveredGroupId(event.coverMaterial);
+  }
+  const group = TIMELINE_GROUPS.find(g => g.types.includes(event.type));
+  return group ? group.id : event.type;
 }
 
 // Convert API events to vis-timeline items
@@ -192,7 +229,7 @@ function eventsToTimelineItems(
       const config = EVENT_TYPE_CONFIG[event.type];
       return {
         id: event.id,
-        group: getGroupForType(event.type),
+        group: getGroupForEvent(event),
         content: `<span class="event-icon-only">${config.icon}</span>`,
         start: new Date(event.creationDateTime),
         type: 'point' as const,
@@ -224,14 +261,14 @@ export function Timeline({
     // Get unique event types for groups
     const visibleEvents = events.filter(e => e.state === 'VISIBLE');
     const eventTypes = new Set(visibleEvents.map(e => e.type));
-    const groups = new DataSet(createGroups(eventTypes));
+    const groupData = createGroups(eventTypes, visibleEvents);
+    const groups = new DataSet(groupData);
 
     // Create dataset
     const items = new DataSet(eventsToTimelineItems(events, assetId, pictures));
 
-    // Calculate height based on number of groups (not event types, since some are combined)
-    const activeGroups = TIMELINE_GROUPS.filter(g => g.types.some(t => eventTypes.has(t)));
-    const groupCount = activeGroups.length;
+    // Calculate height based on number of groups
+    const groupCount = groupData.length;
     const rowHeight = 50;
     const headerHeight = 40;
     const calculatedHeight = Math.max(200, groupCount * rowHeight + headerHeight);

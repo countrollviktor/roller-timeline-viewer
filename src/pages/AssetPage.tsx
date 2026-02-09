@@ -113,7 +113,7 @@ export function AssetPage() {
   const filteredEvents = useMemo(() => {
     if (!asset) return [];
 
-    return asset.events.filter((event: AssetEvent) => {
+    return (asset.events || []).filter((event: AssetEvent) => {
       // Must be visible
       if (event.state !== 'VISIBLE') return false;
 
@@ -134,7 +134,7 @@ export function AssetPage() {
   // All visible events (for stats)
   const allVisibleEvents = useMemo(() => {
     if (!asset) return [];
-    return asset.events.filter(e => e.state === 'VISIBLE');
+    return (asset.events || []).filter(e => e.state === 'VISIBLE');
   }, [asset]);
 
   // Available years from events
@@ -315,7 +315,7 @@ export function AssetPage() {
         {/* Debug: Event list */}
         <details className="mt-4 sm:mt-6">
           <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
-            Debug: View raw event data ({asset.events.length} total, {filteredEvents.length} filtered)
+            Debug: View raw event data ({(asset.events || []).length} total, {filteredEvents.length} filtered)
           </summary>
           <pre className="mt-2 bg-gray-800 text-green-400 p-4 rounded-lg overflow-auto text-xs max-h-96">
             {JSON.stringify(filteredEvents, null, 2)}

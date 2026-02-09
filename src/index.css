@@ -65,14 +65,13 @@ body {
   display: none !important;
 }
 
-/* Hide the group labels on the left */
+/* Left panel row labels */
 .vis-labelset {
-  display: none !important;
+  min-width: 100px;
 }
 
-/* Adjust left panel width to 0 since we hide labels */
 .vis-left {
-  width: 0 !important;
+  min-width: 100px;
 }
 
 /* Event type: RECOVERED - Green */
@@ -201,18 +200,25 @@ body {
   white-space: normal;
 }
 
-/* Group/row styling */
-.vis-label {
-  background-color: #fafafa;
-  border-bottom: 1px solid #e5e7eb;
+/* Group/row label styling */
+.vis-labelset .vis-label {
+  background-color: white;
+  border-bottom: 1px solid #f3f4f6;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
-.vis-labelset .vis-label {
-  padding: 4px 8px;
+.vis-labelset .vis-label .vis-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .vis-group {
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f3f4f6;
+  background-color: white;
 }
 
 /* Time axis styling */
