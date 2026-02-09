@@ -7,6 +7,7 @@ import { EventSidebar } from '../components/EventSidebar';
 import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { RollerDiagram } from '../components/RollerDiagram';
 import type { EventType, AssetEvent, Asset, PictureEvent } from '../types';
 
 export function AssetPage() {
@@ -235,8 +236,8 @@ export function AssetPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
-        {/* Stats Row */}
-        <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6">
+        {/* Stats + Roller Diagram */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
             <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Type</dt>
             <dd className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">{asset.type}</dd>
@@ -251,6 +252,11 @@ export function AssetPage() {
             <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
               <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Length</dt>
               <dd className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">{asset.length} mm</dd>
+            </div>
+          )}
+          {(asset.nominalCoverDiameter || asset.length) && (
+            <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
+              <RollerDiagram diameter={asset.nominalCoverDiameter} length={asset.length} />
             </div>
           )}
         </div>
