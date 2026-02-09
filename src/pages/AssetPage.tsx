@@ -256,7 +256,7 @@ export function AssetPage() {
           )}
           {(asset.nominalCoverDiameter || asset.length) && (
             <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
-              <RollerDiagram diameter={asset.nominalCoverDiameter} length={asset.length} />
+              <RollerDiagram type={asset.type} diameter={asset.nominalCoverDiameter} length={asset.length} />
             </div>
           )}
         </div>
