@@ -192,6 +192,10 @@ export function AssetPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <a href="/">
+                  <img src="/countroll-logo.svg" alt="Countroll" className="h-5 sm:h-6" />
+                </a>
+                <span className="text-gray-300">|</span>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                   {asset.preferredLabel}
                 </h1>

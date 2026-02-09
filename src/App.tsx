@@ -16,21 +16,13 @@ function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-emerald-50 flex items-center justify-center p-4">
       <div className="text-center max-w-md w-full">
-        {/* Logo/Icon */}
-        <div className="mx-auto w-20 h-20 bg-[#1DB898] rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-          <svg
-            className="w-10 h-10 text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
+        {/* Countroll Logo */}
+        <div className="mb-8">
+          <img
+            src="/countroll-logo.svg"
+            alt="Countroll"
+            className="w-48 sm:w-64 mx-auto"
+          />
         </div>
 
         <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">

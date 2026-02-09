@@ -7,7 +7,11 @@ interface ErrorStateProps {
 
 export function ErrorState({ title, message, suggestion, onRetry }: ErrorStateProps) {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-200 px-4 py-3">
+        <a href="/"><img src="/countroll-logo.svg" alt="Countroll" className="h-5" /></a>
+      </header>
+    <div className="flex items-center justify-center p-4" style={{ minHeight: 'calc(100vh - 53px)' }}>
       <div className="text-center max-w-md">
         {/* Error Icon */}
         <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
@@ -54,6 +58,7 @@ export function ErrorState({ title, message, suggestion, onRetry }: ErrorStatePr
             Try Again
           </button>
         )}
+      </div>
       </div>
     </div>
   );
