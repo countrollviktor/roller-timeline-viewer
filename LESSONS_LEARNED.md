@@ -261,3 +261,30 @@ Group IDs use a prefix pattern (`RECOVERED:Rubber`, `RECOVERED:PU`) to avoid col
 ```
 
 **Takeaway:** Never assume API responses contain all fields defined in your TypeScript interface. Add runtime guards for any field accessed in render paths, especially arrays that get `.filter()`, `.map()`, or `.length`.
+
+---
+
+## 14. SVG cylinder side-view: layering and perspective for sleeves
+
+**Problem:** Rendering a hollow cylinder (sleeve) in SVG side view requires careful layering and consistent perspective. Several visual issues emerged:
+
+1. **Both bore holes visible** — showing bore on both ends violates perspective (you can only see the front bore)
+2. **Back end cap with different fill** — using `endGrad` or a solid gray fill makes the back end look like a separate lid/cap
+3. **Body rect stroke creates straight right edge** — the `<rect>` stroke draws a straight vertical line at the right edge, conflicting with the curved end
+4. **Right curve too subtle** — using the same `rx` as the left face makes the right curve barely visible since only the peeking edges show
+
+**Solution (layering order for sleeve):**
+1. Right end ellipse: `fill="url(#bodyGrad)"`, no stroke, `rx = endCapRx * 1.5` (drawn first, behind body)
+2. Body `<rect>`: no stroke (fill only), with separate `<line>` elements for top and bottom edges
+3. Dashed bore lines through body (showing hollow interior)
+4. Left face ellipse: `fill="url(#endGrad)"` with stroke (drawn last, on top)
+5. Left bore ellipse: lighter fill showing the hollow center
+
+**Key rules:**
+- SVG draw order = z-order (later elements render on top)
+- Back-facing end uses same gradient as body + no stroke = seamless surface
+- Right ellipse rx should be ~1.5× the left endCapRx for visually balanced curvature
+- Don't stroke the body rect — use separate top/bottom lines to avoid unwanted straight edges at the ends
+- Only the front-facing end shows the bore hole
+
+**Takeaway:** When rendering 3D-like shapes in SVG, every element needs consistent fill/stroke treatment for visual coherence. Different fills on adjacent shapes create "lid" artifacts. Use draw order for depth and separate line elements instead of rect strokes for selective edges.

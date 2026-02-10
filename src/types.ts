@@ -60,6 +60,7 @@ export interface Asset {
   id: string;
   type: string;
   preferredLabel: string;
+  partnerLabels?: Record<string, string>;
   description: string;
   status: string;
   creationDateTime: string;

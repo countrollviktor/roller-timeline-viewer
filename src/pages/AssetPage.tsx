@@ -187,48 +187,65 @@ export function AssetPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Nav bar */}
+      <nav className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
+          <a href="/">
+            <img src="/countroll-logo.svg" alt="Countroll" className="h-5" />
+          </a>
+          <form onSubmit={handleSearch} className="flex gap-1">
+            <input
+              type="text"
+              value={searchId}
+              onChange={e => setSearchId(e.target.value)}
+              placeholder="Go to asset..."
+              className="w-28 sm:w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#1DB898]"
+            />
+            <button
+              type="submit"
+              disabled={!searchId.trim()}
+              className="px-2 py-1 text-sm bg-[#1DB898] text-white rounded hover:bg-[#189e83] disabled:opacity-50"
+            >
+              Go
+            </button>
+          </form>
+        </div>
+      </nav>
+
+      {/* Asset header */}
       <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <a href="/">
-                  <img src="/countroll-logo.svg" alt="Countroll" className="h-5 sm:h-6" />
-                </a>
-                <span className="text-gray-300">|</span>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
-                  {asset.preferredLabel}
-                </h1>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800 whitespace-nowrap">
-                  {asset.status.replace(/_/g, ' ')}
-                </span>
-              </div>
-              <p className="text-gray-500 mt-1 text-sm sm:text-base truncate">{asset.description}</p>
+              {(() => {
+                const partnerLabel = asset.partnerLabels
+                  ? Object.values(asset.partnerLabels)[0]
+                  : undefined;
+                return (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+                        {partnerLabel || asset.preferredLabel}
+                        {partnerLabel && (
+                          <span className="text-sm font-normal text-gray-400 ml-2">({asset.preferredLabel})</span>
+                        )}
+                      </h1>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800 whitespace-nowrap">
+                        {asset.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                    <p className="text-gray-500 mt-1 text-sm truncate">
+                      {asset.description}
+                    </p>
+                  </>
+                );
+              })()}
             </div>
-            <div className="flex flex-col items-end gap-2">
-              <form onSubmit={handleSearch} className="flex gap-1">
-                <input
-                  type="text"
-                  value={searchId}
-                  onChange={e => setSearchId(e.target.value)}
-                  placeholder="Go to asset..."
-                  className="w-28 sm:w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#1DB898]"
-                />
-                <button
-                  type="submit"
-                  disabled={!searchId.trim()}
-                  className="px-2 py-1 text-sm bg-[#1DB898] text-white rounded hover:bg-[#189e83] disabled:opacity-50"
-                >
-                  Go
-                </button>
-              </form>
-              <div className="text-right text-sm text-gray-500">
-                <p>Asset ID: {asset.id}</p>
-                {asset.currentPosition && (
-                  <p className="truncate">Location: {asset.currentPosition.name}</p>
-                )}
-              </div>
+            <div className="text-right text-xs text-gray-400 shrink-0">
+              <p>{asset.type} ID: {asset.id}</p>
+              {asset.currentPosition && (
+                <p className="truncate">{asset.currentPosition.name}</p>
+              )}
             </div>
           </div>
         </div>
@@ -238,10 +255,6 @@ export function AssetPage() {
       <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
         {/* Stats + Roller Diagram */}
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
-            <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Type</dt>
-            <dd className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">{asset.type}</dd>
-          </div>
           {asset.nominalCoverDiameter && (
             <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
               <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Diameter</dt>
@@ -273,14 +286,6 @@ export function AssetPage() {
               onYearsChange={setSelectedYears}
               onReset={handleReset}
             />
-          </div>
-
-          {/* Timeline Header */}
-          <div className="px-4 sm:px-6 py-3 border-b border-gray-100 bg-gray-50">
-            <p className="text-xs sm:text-sm text-gray-500">
-              <span className="hidden sm:inline">Scroll to zoom | Drag to pan | Hover for details | Click to open in Countroll</span>
-              <span className="sm:hidden">Pinch to zoom | Drag to pan | Tap for details</span>
-            </p>
           </div>
 
           {/* Timeline */}
@@ -322,8 +327,16 @@ export function AssetPage() {
           )}
         </div>
 
-        {/* Debug: Event list */}
+        {/* Debug sections */}
         <details className="mt-4 sm:mt-6">
+          <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+            Debug: View thing data
+          </summary>
+          <pre className="mt-2 bg-gray-800 text-green-400 p-4 rounded-lg overflow-auto text-xs max-h-96">
+            {JSON.stringify({ ...asset, events: undefined }, null, 2)}
+          </pre>
+        </details>
+        <details className="mt-2">
           <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
             Debug: View raw event data ({(asset.events || []).length} total, {filteredEvents.length} filtered)
           </summary>

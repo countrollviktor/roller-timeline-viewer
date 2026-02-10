@@ -86,15 +86,17 @@ roller-timeline-viewer/
 - Backdrop click or X button to close
 
 ### Roller Diagram (RollerDiagram.tsx)
-- SVG technical drawing of the roller with shafts and 3D gradient
+- SVG technical drawing adapts to asset type (`type` prop from `asset.type`)
+- **ROLLER:** Cylindrical body with shafts extending from each end, end cap ellipses
+- **SLEEVE:** Hollow cylinder with bore visible on front face (left), smooth curved back end (right), dashed bore lines through body, no shafts
 - **Proportionally scaled** to real diameter/length ratio
 - Teal dimension callout lines with arrowheads for diameter and length
-- Adapts viewBox to fit the roller shape (long-thin vs short-fat)
+- Adapts viewBox to fit the shape (long-thin vs short-fat)
 
 ### Navigation
-- **Countroll logo** on every page (home, asset, loading, error states), links to home
+- **Slim nav bar** on asset page with Countroll logo (links to home) and quick search
+- **Countroll logo** on every page (home, asset, loading, error states)
 - **Home page** (App.tsx) with Countroll logo, asset ID input, and sample asset link
-- **Quick navigation** input in AssetPage header to jump to another asset by ID
 - Routes: `/` (home), `/asset/:assetId` (timeline)
 
 ### Filtering
@@ -221,10 +223,12 @@ VITE_THIRD_PARTY_ID=2
 - Clear button appears when years are selected
 
 ### AssetPage (AssetPage.tsx)
-- Countroll logo in header (links to home)
+- **Two-row header:** slim nav bar (logo + search) separated from asset info
+- **Partner label as title** — first value from `partnerLabels` shown large, with `preferredLabel` (C-label) in smaller brackets, e.g. "400428426 (C8522)"
+- Falls back to `preferredLabel` if no partner labels exist
+- Asset ID shown as small subtle text in top-right corner
 - Stats row: Type, Diameter, Length cards + RollerDiagram SVG
 - Event count shown as subtle text below timeline
-- Quick navigation input in header to jump to another asset
 - Defensive `(asset.events || [])` guards — API may return assets without `events` array
 
 ### Branding

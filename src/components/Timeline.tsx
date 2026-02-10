@@ -177,7 +177,8 @@ function groupLabel(icon: string, text: string, color: string): string {
 
 // Create groups for timeline rows
 function createGroups(eventTypes: Set<string>, events: AssetEvent[]) {
-  const groups: { id: string; content: string; style: string }[] = [];
+  const groups: { id: string; content: string; style: string; order: number }[] = [];
+  let order = 0;
 
   // Dynamic RECOVERED groups by material
   if (eventTypes.has('RECOVERED')) {
@@ -188,11 +189,12 @@ function createGroups(eventTypes: Set<string>, events: AssetEvent[]) {
         id: getRecoveredGroupId(material),
         content: groupLabel(config.icon, material, config.color),
         style: `border-left: 3px solid ${config.color};`,
+        order: order++,
       });
     }
   }
 
-  // Static groups
+  // Static groups (order follows TIMELINE_GROUPS array)
   for (const group of TIMELINE_GROUPS) {
     if (!group.types.some(t => eventTypes.has(t))) continue;
     const config = group.label
@@ -202,6 +204,7 @@ function createGroups(eventTypes: Set<string>, events: AssetEvent[]) {
       id: group.id,
       content: groupLabel(config.icon!, config.label!, config.color!),
       style: `border-left: 3px solid ${config.color};`,
+      order: order++,
     });
   }
 
@@ -323,7 +326,7 @@ export function Timeline({
         overflowMethod: 'cap',
       },
       align: 'center',
-      groupOrder: 'content',
+      groupOrder: 'order',
       stack: false,
     };
 
