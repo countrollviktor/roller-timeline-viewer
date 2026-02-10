@@ -261,15 +261,21 @@ export function AssetPage() {
               <dd className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">{asset.nominalCoverDiameter} mm</dd>
             </div>
           )}
-          {asset.length && (
+          {asset.nominalCoverLength && (
             <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
-              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Length</dt>
+              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Cover Length</dt>
+              <dd className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">{asset.nominalCoverLength} mm</dd>
+            </div>
+          )}
+          {asset.length && asset.length !== asset.nominalCoverLength && (
+            <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
+              <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Length</dt>
               <dd className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">{asset.length} mm</dd>
             </div>
           )}
-          {(asset.nominalCoverDiameter || asset.length) && (
+          {(asset.nominalCoverDiameter || asset.nominalCoverLength || asset.length) && (
             <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
-              <RollerDiagram type={asset.type} diameter={asset.nominalCoverDiameter} length={asset.length} />
+              <RollerDiagram type={asset.type} diameter={asset.nominalCoverDiameter} coverLength={asset.nominalCoverLength} totalLength={asset.length} />
             </div>
           )}
         </div>

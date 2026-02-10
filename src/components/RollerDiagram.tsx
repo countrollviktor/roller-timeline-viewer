@@ -1,23 +1,25 @@
 interface RollerDiagramProps {
   type?: string;
   diameter?: number;
-  length?: number;
+  coverLength?: number;
+  totalLength?: number;
 }
 
-export function RollerDiagram({ type, diameter, length }: RollerDiagramProps) {
-  if (!diameter && !length) return null;
+export function RollerDiagram({ type, diameter, coverLength, totalLength }: RollerDiagramProps) {
+  if (!diameter && !coverLength && !totalLength) return null;
 
   const isSleeve = type?.toUpperCase() === 'SLEEVE';
 
   // Use real dimensions to calculate proportions
+  // For rollers: body = cover, total includes journals
+  // For sleeves: body = cover (no journals)
   const realD = diameter || 150;
-  const realL = length || 800;
-  const ratio = realL / realD;
+  const realCoverL = coverLength || totalLength || 800;
+  const ratio = realCoverL / realD;
 
   // Layout constants
-  const endLen = isSleeve ? 12 : 24; // shaft length or end-ring width
   const dimMarginRight = 60;
-  const dimMarginBottom = 28;
+  const dimMarginBottom = totalLength && coverLength ? 44 : 28;
   const padX = 10;
   const padY = 10;
 
@@ -35,6 +37,11 @@ export function RollerDiagram({ type, diameter, length }: RollerDiagramProps) {
     bodyH = maxBodyH;
     bodyW = Math.max(40, bodyH * ratio);
   }
+
+  // Shaft/end length: proportional to real journal length, or default
+  const endLen = (!isSleeve && totalLength && coverLength && totalLength > coverLength)
+    ? Math.max(12, Math.min(48, bodyW * ((totalLength - coverLength) / 2) / realCoverL))
+    : (isSleeve ? 12 : 24);
 
   // SVG dimensions
   const svgW = padX + endLen + bodyW + endLen + dimMarginRight + padX;
@@ -63,7 +70,7 @@ export function RollerDiagram({ type, diameter, length }: RollerDiagramProps) {
       className="w-full max-w-sm"
       style={{ maxHeight: '140px' }}
       role="img"
-      aria-label={`${isSleeve ? 'Sleeve' : 'Roller'} diagram${diameter ? `, diameter ${diameter}mm` : ''}${length ? `, length ${length}mm` : ''}`}
+      aria-label={`${isSleeve ? 'Sleeve' : 'Roller'} diagram${diameter ? `, diameter ${diameter}mm` : ''}${coverLength ? `, cover length ${coverLength}mm` : ''}${totalLength ? `, total length ${totalLength}mm` : ''}`}
     >
       <defs>
         <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
@@ -259,8 +266,8 @@ export function RollerDiagram({ type, diameter, length }: RollerDiagramProps) {
         </g>
       )}
 
-      {/* Length (bottom) */}
-      {length && (
+      {/* Cover length (bottom — spans body only) */}
+      {coverLength && (
         <g>
           <line
             x1={bodyX} y1={bodyY + bodyH + 4}
@@ -291,8 +298,55 @@ export function RollerDiagram({ type, diameter, length }: RollerDiagramProps) {
             fontSize={14} fill="#1DB898" fontWeight={600}
             textAnchor="middle"
           >
-            {length} mm
+            {coverLength} mm
           </text>
+        </g>
+      )}
+
+      {/* Total length (bottom — spans full width including shafts, only if different from cover) */}
+      {totalLength && coverLength && totalLength !== coverLength && !isSleeve && (
+        <g>
+          {(() => {
+            const totalDimY = bodyY + bodyH + dimOffset + 16;
+            const totalLeft = bodyX - endLen;
+            const totalRight = bodyX + bodyW + endLen;
+            const totalMid = (totalLeft + totalRight) / 2;
+            return (
+              <>
+                <line
+                  x1={totalLeft} y1={bodyY + bodyH + dimOffset + 4}
+                  x2={totalLeft} y2={totalDimY + 4}
+                  stroke="#1DB898" strokeWidth={0.8} opacity={0.6}
+                />
+                <line
+                  x1={totalRight} y1={bodyY + bodyH + dimOffset + 4}
+                  x2={totalRight} y2={totalDimY + 4}
+                  stroke="#1DB898" strokeWidth={0.8} opacity={0.6}
+                />
+                <line
+                  x1={totalLeft} y1={totalDimY}
+                  x2={totalRight} y2={totalDimY}
+                  stroke="#1DB898" strokeWidth={0.8} opacity={0.6}
+                />
+                <polygon
+                  points={`${totalLeft + 5},${totalDimY - 3} ${totalLeft + 5},${totalDimY + 3} ${totalLeft},${totalDimY}`}
+                  fill="#1DB898" opacity={0.6}
+                />
+                <polygon
+                  points={`${totalRight - 5},${totalDimY - 3} ${totalRight - 5},${totalDimY + 3} ${totalRight},${totalDimY}`}
+                  fill="#1DB898" opacity={0.6}
+                />
+                <text
+                  x={totalMid}
+                  y={totalDimY - 4}
+                  fontSize={12} fill="#1DB898" fontWeight={600} opacity={0.6}
+                  textAnchor="middle"
+                >
+                  {totalLength} mm
+                </text>
+              </>
+            );
+          })()}
         </g>
       )}
     </svg>
