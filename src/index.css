@@ -9,17 +9,12 @@ body {
 .timeline-container {
   background: #fafafa;
   border-radius: 8px;
-  overflow: visible;
+  overflow: hidden;
 }
 
-/* Allow tooltips to overflow the timeline */
-.vis-timeline {
-  overflow: visible !important;
-}
-
-.vis-panel.vis-center,
-.vis-panel.vis-bottom {
-  overflow: visible !important;
+/* Clip items that scroll outside the visible timeline area */
+.vis-panel.vis-center {
+  overflow: hidden !important;
 }
 
 /* Base vis-timeline overrides */
@@ -145,6 +140,17 @@ body {
 
 .vis-item.event-unlinked .vis-item-content {
   background-color: #e2e8f0;
+}
+
+/* Event type: OTHER - Dark teal */
+.vis-item.event-other {
+  background-color: #ccfbf1;
+  border-color: #0f766e;
+  color: #115e59;
+}
+
+.vis-item.event-other .vis-item-content {
+  background-color: #ccfbf1;
 }
 
 /* Event type: INITIALIZED and other gray events */

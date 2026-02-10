@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchAsset, fetchPictures, isApiConfigured } from '../api/countroll';
+import { fetchAsset, fetchPictures, fetchEventDocuments, fetchDocumentThumbnailUrl, isApiConfigured } from '../api/countroll';
 import { Timeline, MAIN_EVENT_TYPES } from '../components/Timeline';
 import { Filters } from '../components/Filters';
 import { EventSidebar } from '../components/EventSidebar';
@@ -33,7 +33,7 @@ export function AssetPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Default event types (exclude ENGRAVED)
-  const DEFAULT_EVENT_TYPES: EventType[] = ['RECOVERED', 'REGRINDED', 'PICTURE', 'LINKED', 'UNLINKED'];
+  const DEFAULT_EVENT_TYPES: EventType[] = ['RECOVERED', 'REGRINDED', 'PICTURE', 'OTHER', 'LINKED', 'UNLINKED'];
 
   // Filter state
   const [selectedTypes, setSelectedTypes] = useState<Set<EventType>>(
@@ -46,6 +46,9 @@ export function AssetPage() {
 
   // Photo library state
   const [showPhotoLibrary, setShowPhotoLibrary] = useState(false);
+
+  // Diagram expanded state
+  const [showDiagram, setShowDiagram] = useState(false);
 
   // Fetch asset data
   useEffect(() => {
@@ -74,8 +77,40 @@ export function AssetPage() {
         ]);
 
         if (!cancelled) {
+          const allPictures = [...(picturesData.pictureEvents || [])];
+
+          // Fetch documents for OTHER events (they store pictures as documents)
+          const otherEvents = (assetData.events || []).filter((e: AssetEvent) => e.type === 'OTHER' && e.state === 'VISIBLE');
+          if (otherEvents.length > 0) {
+            const docResults = await Promise.all(
+              otherEvents.map(async (e: AssetEvent) => {
+                const docs = await fetchEventDocuments(assetId!, e.id);
+                const imageDocs = docs.filter(d => d.contentType.startsWith('image/'));
+                if (imageDocs.length === 0) return null;
+                // Fetch thumbnail URLs for grid display
+                const thumbnailUrls = await Promise.all(
+                  imageDocs.map(d => fetchDocumentThumbnailUrl(assetId!, e.id, d.documentName))
+                );
+                return {
+                  url: `https://app.countroll.com/#/thing/${assetId}/events/${e.id}`,
+                  numberOfPictures: imageDocs.length,
+                  pictures: imageDocs.map((d, i) => ({
+                    fileName: d.displayName,
+                    downloadUrl: thumbnailUrls[i],
+                    createdOn: d.creationDateTime,
+                    updatedOn: d.lastUpdatedDateTime,
+                    contentType: d.contentType,
+                  })),
+                };
+              })
+            );
+            for (const pe of docResults) {
+              if (pe) allPictures.push(pe);
+            }
+          }
+
           setAsset(assetData);
-          setPictures(picturesData.pictureEvents || []);
+          setPictures(allPictures);
         }
       } catch (err) {
         if (!cancelled) {
@@ -258,7 +293,7 @@ export function AssetPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
         {/* Stats + Roller Diagram */}
-        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="flex flex-wrap items-stretch gap-3 sm:gap-4 mb-4 sm:mb-6">
           {asset.nominalCoverDiameter && (
             <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
               <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Diameter</dt>
@@ -278,9 +313,12 @@ export function AssetPage() {
             </div>
           )}
           {(asset.nominalCoverDiameter || asset.nominalCoverLength || asset.length) && (
-            <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
+            <button
+              onClick={() => setShowDiagram(true)}
+              className="bg-white rounded-lg shadow-sm p-3 sm:p-4 flex items-center hover:border-[#1DB898] border border-transparent transition-colors cursor-pointer"
+            >
               <RollerDiagram type={asset.type} diameter={asset.nominalCoverDiameter} coverLength={asset.nominalCoverLength} totalLength={asset.length} />
-            </div>
+            </button>
           )}
           {(() => {
             const totalPhotoCount = pictures.reduce((sum, pe) => sum + pe.pictures.length, 0);
@@ -400,6 +438,32 @@ export function AssetPage() {
           pictures={pictures}
           onClose={() => setShowPhotoLibrary(false)}
         />
+      )}
+
+      {/* Expanded Diagram */}
+      {showDiagram && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setShowDiagram(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-8" onClick={() => setShowDiagram(false)}>
+            <div className="bg-white rounded-xl shadow-2xl p-6 sm:p-8 max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                  {asset.type} Diagram
+                </h3>
+                <button
+                  onClick={() => setShowDiagram(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  aria-label="Close"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <RollerDiagram type={asset.type} diameter={asset.nominalCoverDiameter} coverLength={asset.nominalCoverLength} totalLength={asset.length} compact={false} />
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

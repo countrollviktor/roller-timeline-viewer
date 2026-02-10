@@ -25,10 +25,11 @@ export const EVENT_TYPE_CONFIG: Record<EventType, { label: string; icon: string;
   LINKED: { label: 'Linked', icon: '🔗', color: '#0891b2', bgColor: '#cffafe', group: 'POSITION' },
   UNLINKED: { label: 'Unlinked', icon: '🔗', color: '#64748b', bgColor: '#e2e8f0', group: 'POSITION' },
   ROLLER_LINKED_TO_WO: { label: 'Linked to WO', icon: '•', color: '#6b7280', bgColor: '#f3f4f6' },
+  OTHER: { label: 'Other', icon: '★', color: '#0f766e', bgColor: '#ccfbf1' },
 };
 
 // Main event types to show in filters (order matters for display)
-export const MAIN_EVENT_TYPES: EventType[] = ['RECOVERED', 'REGRINDED', 'PICTURE', 'LINKED', 'UNLINKED', 'ENGRAVED'];
+export const MAIN_EVENT_TYPES: EventType[] = ['RECOVERED', 'REGRINDED', 'PICTURE', 'OTHER', 'LINKED', 'UNLINKED', 'ENGRAVED'];
 
 // Static groups for timeline rows (order matters)
 // RECOVERED is handled dynamically — split by coverMaterial
@@ -37,6 +38,7 @@ export const TIMELINE_GROUPS = [
   { id: 'PICTURE', types: ['PICTURE'] },
   { id: 'ENGRAVED', types: ['ENGRAVED'] },
   { id: 'POSITION', types: ['LINKED', 'UNLINKED'], label: 'Linked', icon: '🔗', color: '#0891b2', bgColor: '#cffafe' },
+  { id: 'OTHER', types: ['OTHER'] },
 ];
 
 // Get Countroll web app URL for an event
@@ -104,7 +106,7 @@ function formatTooltip(
 
   // Description - make it prominent for PICTURE events (contains the comment)
   if (event.description) {
-    if (event.type === 'PICTURE') {
+    if (event.type === 'PICTURE' || event.type === 'OTHER') {
       lines.push(`<mark>${event.description}</mark>`);
     } else {
       lines.push(`<div>${event.description}</div>`);
@@ -227,7 +229,7 @@ function eventsToTimelineItems(
   pictures?: PictureEvent[]
 ) {
   return events
-    .filter(event => event.state === 'VISIBLE')
+    .filter(event => event.state === 'VISIBLE' && EVENT_TYPE_CONFIG[event.type])
     .map(event => {
       const config = EVENT_TYPE_CONFIG[event.type];
       return {

@@ -1,4 +1,4 @@
-import type { Asset, PicturesResponse } from '../types';
+import type { Asset, PicturesResponse, EventDocument } from '../types';
 
 // Configuration from environment variables (Vite requires VITE_ prefix)
 // In development, requests go through Vite proxy to avoid CORS
@@ -141,6 +141,52 @@ export async function fetchPictures(assetId: string): Promise<PicturesResponse> 
   return response.json();
 }
 
+/**
+ * Fetch documents for a specific event
+ */
+export async function fetchEventDocuments(assetId: string, eventId: string): Promise<EventDocument[]> {
+  const accessToken = await getAccessToken();
+
+  const url = `${config.apiBaseUrl}/api/assets/${encodeURIComponent(assetId)}/events/${encodeURIComponent(eventId)}/documents`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Third-Party': config.thirdPartyId,
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) return [];
+
+  return response.json();
+}
+
+/**
+ * Get a time-limited thumbnail URL for an event document image
+ */
+export async function fetchDocumentThumbnailUrl(assetId: string, eventId: string, imageName: string): Promise<string> {
+  const accessToken = await getAccessToken();
+  const base = isDev ? '' : config.apiBaseUrl;
+  const url = `${base}/api/assets/${encodeURIComponent(assetId)}/events/${encodeURIComponent(eventId)}/thumbnails/${encodeURIComponent(imageName)}`;
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Third-Party': config.thirdPartyId,
+    },
+  });
+
+  if (!response.ok) return '';
+
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('json')) {
+    const data = await response.json();
+    return data.url || data.downloadUrl || '';
+  }
+  return await response.text();
+}
 /**
  * Check if API credentials are configured
  */

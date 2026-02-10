@@ -8,7 +8,8 @@ export type EventType =
   | 'UNINITIALIZED'
   | 'LINKED'
   | 'UNLINKED'
-  | 'ROLLER_LINKED_TO_WO';
+  | 'ROLLER_LINKED_TO_WO'
+  | 'OTHER';
 
 export type EventState = 'VISIBLE' | 'HIDDEN';
 
@@ -76,6 +77,15 @@ export interface Asset {
   engraved?: boolean;
   temporary?: boolean;
   customType?: string;
+}
+
+// Event documents API types
+export interface EventDocument {
+  displayName: string;
+  documentName: string;
+  contentType: string;
+  creationDateTime: string;
+  lastUpdatedDateTime: string;
 }
 
 // Pictures API types

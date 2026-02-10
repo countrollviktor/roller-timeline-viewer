@@ -37,6 +37,8 @@ roller-timeline-viewer/
 │   │   ├── Filters.tsx         # Event type & year filters
 │   │   ├── EventSidebar.tsx    # Slide-in sidebar for event details + images
 │   │   ├── RollerDiagram.tsx   # SVG roller sketch with dimension callouts
+│   │   ├── PhotoLibrary.tsx    # Full-screen photo grid overlay
+│   │   ├── PhotoViewer.tsx     # Fullscreen lightbox with keyboard nav
 │   │   ├── LoadingSpinner.tsx  # Loading state component
 │   │   ├── ErrorState.tsx      # Full-page error display
 │   │   └── EmptyState.tsx      # Empty/no-results display
@@ -92,6 +94,16 @@ roller-timeline-viewer/
 - **Proportionally scaled** to real diameter/length ratio
 - Teal dimension callout lines with arrowheads for diameter and length
 - Adapts viewBox to fit the shape (long-thin vs short-fat)
+- **Clickable** — click the compact diagram card to open expanded view in overlay
+- `compact` prop controls sizing: `true` (default) = 80px max-height in stats row, `false` = full size in overlay
+
+### Photo Library (PhotoLibrary.tsx + PhotoViewer.tsx)
+- **Photos button** on asset page (visible when photos exist) opens full-screen overlay
+- All photos grouped by date, newest first
+- Includes photos from both `/pictures` API (PICTURE events) and `/documents` API (OTHER events)
+- Click thumbnail opens fullscreen lightbox with prev/next keyboard navigation (arrow keys)
+- Escape closes viewer, then overlay
+- Body scroll locked while overlay is open
 
 ### Navigation
 - **Slim nav bar** on asset page with Countroll logo (links to home) and quick search
@@ -101,7 +113,7 @@ roller-timeline-viewer/
 
 ### Filtering
 - Toggle event types on/off (ENGRAVED hidden by default)
-- Default types: RECOVERED, REGRINDED, PICTURE, LINKED, UNLINKED
+- Default types: RECOVERED, REGRINDED, PICTURE, OTHER, LINKED, UNLINKED
 - **Year selector** with drag-to-select (click and drag across years)
 - Full year display when years selected (Jan 1 to Dec 31)
 - Instant filter updates
@@ -161,6 +173,14 @@ GET /api/assets/{assetId}/pictures
 Headers: Authorization: Bearer {token}, Third-Party: {id}
 ```
 
+**Event Documents (for OTHER events):**
+```
+GET /api/assets/{assetId}/events/{eventId}/documents        # List documents
+GET /api/assets/{assetId}/events/{eventId}/thumbnails/{name} # Time-limited thumbnail URL
+GET /api/assets/{assetId}/events/{eventId}/download/{name}   # Time-limited download URL
+Headers: Authorization: Bearer {token}, Third-Party: {id}
+```
+
 ### Environment Variables
 
 Create a `.env` file from `.env.example`:
@@ -187,6 +207,7 @@ VITE_THIRD_PARTY_ID=2
 | `REGRINDED` | ▼ | Red | On | Cover reground |
 | `PICTURE` | 📷 | Purple | On | Photo documentation |
 | `ENGRAVED` | ✒ | Orange | **Off** | Initial roller engraving |
+| `OTHER` | ★ | Dark Teal | On | Miscellaneous (often used for photos) |
 | `LINKED` | 🔗 | Cyan | On | Position linked |
 | `UNLINKED` | 🔗 | Slate | On | Position unlinked |
 
@@ -211,6 +232,7 @@ VITE_THIRD_PARTY_ID=2
 - **Tooltip HTML gotcha:** vis-timeline strips `style` and `class` attributes from tooltip HTML for security. Use HTML elements like `<mark>` and style them via CSS selectors (`.vis-tooltip mark {}`)
 - **Point vs Box centering:** `type: 'point'` items cannot be centered — the `align` option only works for `box`, `range`, and `background` types. vis-timeline positions point items using `transform` inline styles, so CSS `transform` overrides break positioning entirely
 - Click handler calls `onEventClick` prop to open the sidebar
+- **Unknown event types** are silently filtered out (API may return types not in our config)
 
 ### Event Sidebar (EventSidebar.tsx)
 - Fixed position right-side panel with backdrop overlay
@@ -230,6 +252,8 @@ VITE_THIRD_PARTY_ID=2
 - Stats row: Type, Diameter, Length cards + RollerDiagram SVG
 - Event count shown as subtle text below timeline
 - Defensive `(asset.events || [])` guards — API may return assets without `events` array
+- **OTHER event documents:** The `/pictures` endpoint doesn't return photos from OTHER events. Instead, AssetPage fetches documents for each OTHER event via the `/documents` endpoint, gets thumbnail URLs via `/thumbnails/{name}`, and merges them into the pictures array so they appear in the photo library and tooltips
+- Thumbnail/download URLs from the documents API are **time-limited** (signed URLs)
 
 ### Branding
 - All accent colors use Countroll teal `#1DB898` (hover: `#189e83`)

@@ -288,3 +288,67 @@ Group IDs use a prefix pattern (`RECOVERED:Rubber`, `RECOVERED:PU`) to avoid col
 - Only the front-facing end shows the bore hole
 
 **Takeaway:** When rendering 3D-like shapes in SVG, every element needs consistent fill/stroke treatment for visual coherence. Different fills on adjacent shapes create "lid" artifacts. Use draw order for depth and separate line elements instead of rect strokes for selective edges.
+
+---
+
+## 15. Guard against unknown event types from the API
+
+**Problem:** The app crashed with "Cannot read properties of undefined (reading 'icon')" when the API returned an event type (e.g. `OTHER`) that wasn't in `EVENT_TYPE_CONFIG`.
+
+**Solution:** Filter out events with unknown types before mapping them to timeline items:
+
+```typescript
+.filter(event => event.state === 'VISIBLE' && EVENT_TYPE_CONFIG[event.type])
+```
+
+**Takeaway:** TypeScript types don't enforce what the API actually returns. Always guard against enum/union values that might not match your config at runtime.
+
+---
+
+## 16. Documents API vs Pictures API for different event types
+
+**Problem:** Photos attached to OTHER events don't appear in the `/api/assets/{id}/pictures` response. That endpoint only returns photos from PICTURE-type events.
+
+**Solution:** For OTHER events, use the separate documents API:
+1. `GET /api/assets/{id}/events/{eventId}/documents` — list all documents
+2. Filter for `contentType.startsWith('image/')`
+3. `GET /api/assets/{id}/events/{eventId}/thumbnails/{name}` — get time-limited signed thumbnail URL
+4. `GET /api/assets/{id}/events/{eventId}/download/{name}` — get time-limited signed download URL
+
+Convert the document metadata into the same `PictureEvent` format so they integrate with the existing photo library.
+
+**Gotcha:** The download endpoint is at `/download/{name}`, NOT `/documents/{name}`. Using `/documents/{name}` returns `405 Method Not Allowed`. The `/documents` path is only for listing.
+
+**Takeaway:** When an API has multiple ways to store attachments (pictures vs documents), check which endpoints cover which event types. Don't assume a single "get all photos" endpoint covers everything.
+
+---
+
+## 17. Signed URLs expire — consider blob URLs for persistence
+
+**Problem:** The thumbnail and download URLs from the documents API are time-limited signed URLs that expire within ~1 minute. If a user opens the photo library after the page has been loaded for a while, images are broken.
+
+**Approaches considered:**
+1. **Signed URLs directly** — fast page load, but images break after expiry
+2. **Blob URLs at page load** — persistent, but slow page load with many large images
+3. **Lazy blob loading** — fetch blob only when image is rendered (DocImage component)
+
+**Current choice:** Signed URLs (approach 1) while requesting longer token expiry from the API provider. Approach 3 (lazy blob loading) is the ideal long-term solution if expiry can't be extended.
+
+**Takeaway:** Time-limited signed URLs are fine for immediate display, but any deferred rendering (overlays, pagination) may encounter expired URLs. Consider blob URLs for persistence, but balance against the bandwidth cost of pre-fetching.
+
+---
+
+## 18. vis-timeline overflow — items escape container boundary
+
+**Problem:** When zooming the timeline, event items (box markers) could overflow outside the visible timeline area, appearing to the right of the container boundary.
+
+**Cause:** CSS `overflow: visible !important` was set on `.vis-timeline` and `.vis-panel.vis-center` to allow tooltips to overflow. This also let items overflow.
+
+**Solution:** Set `overflow: hidden` on the timeline container and center panel. Tooltips still work because they use absolute positioning with high z-index:
+
+```css
+.timeline-container { overflow: hidden; }
+.vis-panel.vis-center { overflow: hidden !important; }
+```
+
+**Takeaway:** Be specific about which elements need `overflow: visible`. Setting it on a parent to fix one child (tooltips) can break containment for other children (items).

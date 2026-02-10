@@ -3,9 +3,10 @@ interface RollerDiagramProps {
   diameter?: number;
   coverLength?: number;
   totalLength?: number;
+  compact?: boolean;
 }
 
-export function RollerDiagram({ type, diameter, coverLength, totalLength }: RollerDiagramProps) {
+export function RollerDiagram({ type, diameter, coverLength, totalLength, compact = true }: RollerDiagramProps) {
   if (!diameter && !coverLength && !totalLength) return null;
 
   const isSleeve = type?.toUpperCase() === 'SLEEVE';
@@ -67,8 +68,8 @@ export function RollerDiagram({ type, diameter, coverLength, totalLength }: Roll
   return (
     <svg
       viewBox={`0 0 ${svgW} ${svgH}`}
-      className="w-full max-w-sm"
-      style={{ maxHeight: '140px' }}
+      className={compact ? "w-full max-w-sm h-full" : "w-full"}
+      style={compact ? { maxHeight: '80px' } : undefined}
       role="img"
       aria-label={`${isSleeve ? 'Sleeve' : 'Roller'} diagram${diameter ? `, diameter ${diameter}mm` : ''}${coverLength ? `, cover length ${coverLength}mm` : ''}${totalLength ? `, total length ${totalLength}mm` : ''}`}
     >
