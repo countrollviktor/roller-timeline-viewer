@@ -8,6 +8,7 @@ import { ErrorState } from '../components/ErrorState';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { RollerDiagram } from '../components/RollerDiagram';
+import { PhotoLibrary } from '../components/PhotoLibrary';
 import type { EventType, AssetEvent, Asset, PictureEvent } from '../types';
 
 export function AssetPage() {
@@ -42,6 +43,9 @@ export function AssetPage() {
 
   // Sidebar state
   const [selectedEvent, setSelectedEvent] = useState<AssetEvent | null>(null);
+
+  // Photo library state
+  const [showPhotoLibrary, setShowPhotoLibrary] = useState(false);
 
   // Fetch asset data
   useEffect(() => {
@@ -278,6 +282,19 @@ export function AssetPage() {
               <RollerDiagram type={asset.type} diameter={asset.nominalCoverDiameter} coverLength={asset.nominalCoverLength} totalLength={asset.length} />
             </div>
           )}
+          {(() => {
+            const totalPhotoCount = pictures.reduce((sum, pe) => sum + pe.pictures.length, 0);
+            if (totalPhotoCount === 0) return null;
+            return (
+              <button
+                onClick={() => setShowPhotoLibrary(true)}
+                className="bg-white rounded-lg shadow-sm p-3 sm:p-4 hover:border-[#1DB898] border border-transparent transition-colors"
+              >
+                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">Photos</dt>
+                <dd className="mt-1 text-xl sm:text-2xl font-semibold text-[#1DB898]">📷 {totalPhotoCount}</dd>
+              </button>
+            );
+          })()}
         </div>
 
         {/* Timeline Card */}
@@ -374,6 +391,14 @@ export function AssetPage() {
           pictures={pictures}
           assetId={asset.id}
           onClose={() => setSelectedEvent(null)}
+        />
+      )}
+
+      {/* Photo Library */}
+      {showPhotoLibrary && (
+        <PhotoLibrary
+          pictures={pictures}
+          onClose={() => setShowPhotoLibrary(false)}
         />
       )}
     </div>
