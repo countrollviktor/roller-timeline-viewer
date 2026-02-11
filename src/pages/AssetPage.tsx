@@ -65,6 +65,11 @@ export function AssetPage() {
 
     let cancelled = false;
 
+    // Reset filters when navigating to a new asset
+    setSelectedTypes(new Set(DEFAULT_EVENT_TYPES));
+    setSelectedYears(new Set());
+    setSelectedEvent(null);
+
     async function loadData() {
       setLoading(true);
       setError(null);
