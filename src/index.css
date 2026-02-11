@@ -9,7 +9,6 @@ body {
 .timeline-container {
   background: #fafafa;
   border-radius: 8px;
-  overflow: hidden;
 }
 
 /* Clip items that scroll outside the visible timeline area */
@@ -184,20 +183,18 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Tooltip styling */
-.vis-tooltip {
-  background-color: white !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-  padding: 12px !important;
-  max-width: 300px !important;
-  z-index: 9999 !important;
-  overflow: visible !important;
+/* Custom tooltip portal (rendered on document.body via React portal) */
+.vis-tooltip-portal {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 12px;
+  max-width: 380px;
 }
 
-/* PICTURE event comment highlight - use <mark> since vis-timeline strips class/style attributes */
-.vis-tooltip mark {
+/* PICTURE/OTHER event comment highlight */
+.vis-tooltip-portal mark {
   display: block;
   font-weight: 700;
   font-size: 16px;

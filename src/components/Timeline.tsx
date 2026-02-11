@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Timeline as VisTimeline } from 'vis-timeline/standalone';
 import { DataSet } from 'vis-data/standalone';
 import type { AssetEvent, EventType, PictureEvent } from '../types';
@@ -136,18 +137,18 @@ function formatTooltip(
   if (event.type === 'PICTURE') {
     const pictureData = getPicturesForEvent(event.id, pictures);
     if (pictureData && pictureData.pictures.length > 0) {
-      lines.push(`<div style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">`);
-      pictureData.pictures.slice(0, 3).forEach(pic => {
+      lines.push(`<div style="margin-top: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">`);
+      pictureData.pictures.slice(0, 6).forEach(pic => {
         lines.push(`
           <img
             src="${pic.downloadUrl}"
             alt="${pic.fileName}"
-            style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #e5e7eb;"
+            style="width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; border: 1px solid #e5e7eb;"
           />
         `);
       });
-      if (pictureData.pictures.length > 3) {
-        lines.push(`<div style="display: flex; align-items: center; padding: 0 8px; color: #6b7280; font-size: 12px;">+${pictureData.pictures.length - 3} more</div>`);
+      if (pictureData.pictures.length > 6) {
+        lines.push(`<div style="display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 12px; aspect-ratio: 1; background: #f3f4f6; border-radius: 4px;">+${pictureData.pictures.length - 6}</div>`);
       }
       lines.push(`</div>`);
     }
@@ -222,12 +223,8 @@ function getGroupForEvent(event: AssetEvent): string {
   return group ? group.id : event.type;
 }
 
-// Convert API events to vis-timeline items
-function eventsToTimelineItems(
-  events: AssetEvent[],
-  assetId: string,
-  pictures?: PictureEvent[]
-) {
+// Convert API events to vis-timeline items (no title — we use a custom tooltip portal)
+function eventsToTimelineItems(events: AssetEvent[]) {
   return events
     .filter(event => event.state === 'VISIBLE' && EVENT_TYPE_CONFIG[event.type])
     .map(event => {
@@ -239,7 +236,6 @@ function eventsToTimelineItems(
         start: new Date(event.creationDateTime),
         type: 'box' as const,
         className: `event-${event.type.toLowerCase()} event-clickable`,
-        title: formatTooltip(event, assetId, pictures),
       };
     });
 }
@@ -254,6 +250,58 @@ export function Timeline({
   const containerRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<VisTimeline | null>(null);
   const eventsMapRef = useRef<Map<string, AssetEvent>>(new Map());
+
+  // Custom tooltip state (rendered via portal to body)
+  const [tooltip, setTooltip] = useState<{ html: string; x: number; y: number } | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  // Position tooltip so it stays within the viewport
+  const positionTooltip = useCallback((itemEl: HTMLElement, html: string) => {
+    const rect = itemEl.getBoundingClientRect();
+    // Start below the item, centered horizontally
+    let x = rect.left + rect.width / 2;
+    let y = rect.bottom + 8;
+    setTooltip({ html, x, y });
+  }, []);
+
+  // After tooltip renders, adjust if it overflows the viewport
+  useEffect(() => {
+    if (!tooltip || !tooltipRef.current) return;
+    const el = tooltipRef.current;
+    const tipRect = el.getBoundingClientRect();
+    let { x, y } = tooltip;
+    let adjusted = false;
+
+    // If tooltip goes below viewport, show above the item instead
+    if (tipRect.bottom > window.innerHeight) {
+      // Find the original item rect from the position we stored
+      // y was set to rect.bottom + 8, so rect.bottom = y - 8
+      const itemBottom = y - 8;
+      const itemTop = itemBottom - 30; // approximate item height
+      y = itemTop - tipRect.height - 8;
+      adjusted = true;
+    }
+
+    // Keep within horizontal bounds
+    if (tipRect.right > window.innerWidth - 8) {
+      x -= (tipRect.right - window.innerWidth + 8);
+      adjusted = true;
+    }
+    if (tipRect.left < 8) {
+      x += (8 - tipRect.left);
+      adjusted = true;
+    }
+
+    // Keep above viewport top
+    if (y < 8) {
+      y = 8;
+      adjusted = true;
+    }
+
+    if (adjusted) {
+      setTooltip(prev => prev ? { ...prev, x, y } : null);
+    }
+  }, [tooltip?.html]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -270,7 +318,7 @@ export function Timeline({
     const groups = new DataSet(groupData);
 
     // Create dataset
-    const items = new DataSet(eventsToTimelineItems(events, assetId, pictures));
+    const items = new DataSet(eventsToTimelineItems(events));
 
     // Calculate height based on number of groups
     const groupCount = groupData.length;
@@ -305,7 +353,7 @@ export function Timeline({
       initialEnd = new Date(now.getFullYear(), 11, 31);
     }
 
-    // Timeline options
+    // Timeline options (tooltip disabled — we use a custom portal tooltip)
     const options = {
       height: `${calculatedHeight}px`,
       start: initialStart,
@@ -325,7 +373,8 @@ export function Timeline({
       },
       tooltip: {
         followMouse: false,
-        overflowMethod: 'cap',
+        overflowMethod: 'flip',
+        delay: 99999999, // effectively disable built-in tooltip
       },
       align: 'center',
       groupOrder: 'order',
@@ -336,6 +385,23 @@ export function Timeline({
     const timeline = new VisTimeline(containerRef.current, items, groups, options);
     timelineRef.current = timeline;
 
+    // Custom tooltip via itemover/itemout
+    timeline.on('itemover', (props: { item: string; event: MouseEvent }) => {
+      const event = eventsMapRef.current.get(props.item);
+      if (!event) return;
+      const html = formatTooltip(event, assetId, pictures);
+      // Find the DOM element for this item
+      const itemEl = containerRef.current?.querySelector(`.vis-item[data-id="${props.item}"]`) as HTMLElement | null
+        ?? (props.event.target as HTMLElement).closest('.vis-item') as HTMLElement | null;
+      if (itemEl) {
+        positionTooltip(itemEl, html);
+      }
+    });
+
+    timeline.on('itemout', () => {
+      setTooltip(null);
+    });
+
     // Handle click events
     timeline.on('select', (properties: { items: string[] }) => {
       if (properties.items.length > 0) {
@@ -343,6 +409,7 @@ export function Timeline({
         const event = eventsMapRef.current.get(eventId);
 
         if (event) {
+          setTooltip(null); // hide tooltip on click
           if (onEventClick) {
             onEventClick(event);
           } else {
@@ -365,6 +432,22 @@ export function Timeline({
   return (
     <div className="timeline-container">
       <div ref={containerRef} className="w-full" />
+      {tooltip && createPortal(
+        <div
+          ref={tooltipRef}
+          className="vis-tooltip-portal"
+          style={{
+            position: 'fixed',
+            left: tooltip.x,
+            top: tooltip.y,
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            pointerEvents: 'none',
+          }}
+          dangerouslySetInnerHTML={{ __html: tooltip.html }}
+        />,
+        document.body
+      )}
     </div>
   );
 }
