@@ -57,11 +57,25 @@ export interface AssetPosition {
   type: string;
 }
 
+export interface ThirdPartyLink {
+  thirdPartyId: string;
+  from: string;
+  to: string | null;
+  relationship: string;
+}
+
+export interface ThirdParty {
+  id: string;
+  name1: string;
+  name2?: string | null;
+}
+
 export interface Asset {
   id: string;
   type: string;
   preferredLabel: string;
   partnerLabels?: Record<string, string>;
+  thirdPartyLinks?: ThirdPartyLink[];
   description: string;
   status: string;
   creationDateTime: string;

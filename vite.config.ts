@@ -6,17 +6,14 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    // /api/* -> Countroll REST API (no CORS, must be proxied).
+    // Keycloak is reached browser-direct (CORS enabled via Web Origins),
+    // so no /auth proxy is needed.
     proxy: {
       '/api': {
         target: 'https://api.countroll.com',
         changeOrigin: true,
         secure: true,
-      },
-      '/auth': {
-        target: 'https://sso.countroll.com',
-        changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/auth/, ''),
       },
     },
   },

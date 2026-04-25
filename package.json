@@ -6,12 +6,16 @@
   "description": "Visualizes maintenance history for industrial rubber rollers on an interactive timeline",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
+    "typecheck": "tsc -b",
+    "start": "node server.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "fetch": "node fetch-asset.js"
   },
   "dependencies": {
+    "express": "^4.22.1",
+    "http-proxy-middleware": "^3.0.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.6.2",

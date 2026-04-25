@@ -1,110 +1,41 @@
-import type { Asset, PicturesResponse, EventDocument } from '../types';
-
-// Configuration from environment variables (Vite requires VITE_ prefix)
-// In development, requests go through Vite proxy to avoid CORS
-const isDev = import.meta.env.DEV;
-
-const config = {
-  // In dev mode, use proxy paths; in production, use full URLs
-  tokenUrl: isDev
-    ? '/auth/realms/countroll-realm/protocol/openid-connect/token'
-    : (import.meta.env.VITE_OAUTH_TOKEN_URL || 'https://sso.countroll.com/realms/countroll-realm/protocol/openid-connect/token'),
-  apiBaseUrl: isDev
-    ? ''  // Empty string means relative URLs like /api/thing/...
-    : (import.meta.env.VITE_COUNTROLL_API_URL || 'https://api.countroll.com'),
-  clientId: import.meta.env.VITE_OAUTH_CLIENT_ID || 'countroll-client',
-  username: import.meta.env.VITE_OAUTH_USERNAME || '',
-  password: import.meta.env.VITE_OAUTH_PASSWORD || '',
-  thirdPartyId: import.meta.env.VITE_THIRD_PARTY_ID || '2',
-};
-
-// Token cache
-let cachedToken: string | null = null;
-let tokenExpiry: number = 0;
-let tokenPromise: Promise<string> | null = null;
+import type { Asset, PicturesResponse, EventDocument, ThirdParty } from '../types';
+import { getAccessToken, logout } from './auth-code';
 
 /**
- * Get OAuth2 access token from Keycloak
- * Uses a lock to prevent concurrent token requests
+ * API base URL. In dev + prod we use relative paths so the request
+ * goes through Vite's dev proxy or the Express server's /api proxy.
  */
-async function getAccessToken(): Promise<string> {
-  // Return cached token if still valid (with 10s buffer)
-  if (cachedToken && Date.now() < tokenExpiry - 10000) {
-    return cachedToken;
-  }
+const API_BASE = '';
+const THIRD_PARTY_ID = import.meta.env.VITE_THIRD_PARTY_ID || '2';
 
-  // If a token request is already in progress, wait for it
-  if (tokenPromise) {
-    return tokenPromise;
-  }
-
-  // Create a new token request and store the promise
-  tokenPromise = fetchNewToken();
-
-  try {
-    const token = await tokenPromise;
-    return token;
-  } finally {
-    tokenPromise = null;
-  }
-}
-
-/**
- * Actually fetch a new token from Keycloak
- */
-async function fetchNewToken(): Promise<string> {
-  if (!config.username || !config.password) {
-    throw new Error('Missing credentials. Set VITE_OAUTH_USERNAME and VITE_OAUTH_PASSWORD in .env file.');
-  }
-
-  const body = new URLSearchParams({
-    grant_type: 'password',
-    client_id: config.clientId,
-    username: config.username,
-    password: config.password,
-  });
-
-  const response = await fetch(config.tokenUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: body.toString(),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Authentication failed (${response.status}): ${errorText}`);
-  }
-
-  const data = await response.json();
-  cachedToken = data.access_token;
-  tokenExpiry = Date.now() + (data.expires_in * 1000);
-
-  return cachedToken;
-}
-
-/**
- * Fetch asset data from Countroll API
- */
-export async function fetchAsset(assetId: string): Promise<Asset> {
-  const accessToken = await getAccessToken();
-
-  const url = `${config.apiBaseUrl}/api/thing/${encodeURIComponent(assetId)}`;
-
-  const response = await fetch(url, {
+async function apiFetch(path: string): Promise<Response> {
+  const token = await getAccessToken();
+  return fetch(`${API_BASE}${path}`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Third-Party': config.thirdPartyId,
-      'Accept': 'application/json',
+      Authorization: `Bearer ${token}`,
+      'Third-Party': THIRD_PARTY_ID,
+      Accept: 'application/json',
     },
   });
+}
+
+function handleAuthFailure(status: number): void {
+  if (status === 401) {
+    // Token was rejected — send the user back through Keycloak login.
+    logout();
+  }
+}
+
+/** Fetch asset data (thing) from Countroll API */
+export async function fetchAsset(assetId: string): Promise<Asset> {
+  const response = await apiFetch(`/api/thing/${encodeURIComponent(assetId)}`);
 
   if (!response.ok) {
     if (response.status === 404) {
       throw new Error(`Asset not found: ${assetId}`);
     }
+    handleAuthFailure(response.status);
     const errorText = await response.text();
     throw new Error(`API request failed (${response.status}): ${errorText}`);
   }
@@ -112,28 +43,15 @@ export async function fetchAsset(assetId: string): Promise<Asset> {
   return response.json();
 }
 
-/**
- * Fetch pictures for an asset from Countroll API
- */
+/** Fetch pictures for an asset */
 export async function fetchPictures(assetId: string): Promise<PicturesResponse> {
-  const accessToken = await getAccessToken();
-
-  const url = `${config.apiBaseUrl}/api/assets/${encodeURIComponent(assetId)}/pictures`;
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Third-Party': config.thirdPartyId,
-      'Accept': 'application/json',
-    },
-  });
+  const response = await apiFetch(`/api/assets/${encodeURIComponent(assetId)}/pictures`);
 
   if (!response.ok) {
-    // Pictures endpoint may return 404 if no pictures exist
     if (response.status === 404) {
       return { pictureEvents: [] };
     }
+    handleAuthFailure(response.status);
     const errorText = await response.text();
     throw new Error(`Pictures API request failed (${response.status}): ${errorText}`);
   }
@@ -141,42 +59,38 @@ export async function fetchPictures(assetId: string): Promise<PicturesResponse> 
   return response.json();
 }
 
-/**
- * Fetch documents for a specific event
- */
+/** Fetch a third party (customer/partner) by id */
+export async function fetchThirdParty(thirdPartyId: string): Promise<ThirdParty> {
+  const response = await apiFetch(`/api/thirdParty/${encodeURIComponent(thirdPartyId)}`);
+
+  if (!response.ok) {
+    handleAuthFailure(response.status);
+    throw new Error(`Third party API request failed (${response.status})`);
+  }
+
+  return response.json();
+}
+
+/** Fetch documents attached to a specific event */
 export async function fetchEventDocuments(assetId: string, eventId: string): Promise<EventDocument[]> {
-  const accessToken = await getAccessToken();
-
-  const url = `${config.apiBaseUrl}/api/assets/${encodeURIComponent(assetId)}/events/${encodeURIComponent(eventId)}/documents`;
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Third-Party': config.thirdPartyId,
-      'Accept': 'application/json',
-    },
-  });
+  const response = await apiFetch(
+    `/api/assets/${encodeURIComponent(assetId)}/events/${encodeURIComponent(eventId)}/documents`,
+  );
 
   if (!response.ok) return [];
 
   return response.json();
 }
 
-/**
- * Get a time-limited thumbnail URL for an event document image
- */
-export async function fetchDocumentThumbnailUrl(assetId: string, eventId: string, imageName: string): Promise<string> {
-  const accessToken = await getAccessToken();
-  const base = isDev ? '' : config.apiBaseUrl;
-  const url = `${base}/api/assets/${encodeURIComponent(assetId)}/events/${encodeURIComponent(eventId)}/thumbnails/${encodeURIComponent(imageName)}`;
-
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Third-Party': config.thirdPartyId,
-    },
-  });
+/** Resolve a time-limited thumbnail URL for an event document image */
+export async function fetchDocumentThumbnailUrl(
+  assetId: string,
+  eventId: string,
+  imageName: string,
+): Promise<string> {
+  const response = await apiFetch(
+    `/api/assets/${encodeURIComponent(assetId)}/events/${encodeURIComponent(eventId)}/thumbnails/${encodeURIComponent(imageName)}`,
+  );
 
   if (!response.ok) return '';
 
@@ -186,10 +100,4 @@ export async function fetchDocumentThumbnailUrl(assetId: string, eventId: string
     return data.url || data.downloadUrl || '';
   }
   return await response.text();
-}
-/**
- * Check if API credentials are configured
- */
-export function isApiConfigured(): boolean {
-  return !!(config.username && config.password);
 }

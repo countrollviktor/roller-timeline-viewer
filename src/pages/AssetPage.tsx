@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fetchAsset, fetchPictures, fetchEventDocuments, fetchDocumentThumbnailUrl, isApiConfigured } from '../api/countroll';
+import { fetchAsset, fetchPictures, fetchEventDocuments, fetchDocumentThumbnailUrl, fetchThirdParty } from '../api/countroll';
+import { logout, getCurrentUser } from '../api/auth-code';
 import { Timeline, MAIN_EVENT_TYPES } from '../components/Timeline';
 import { Filters } from '../components/Filters';
 import { EventSidebar } from '../components/EventSidebar';
@@ -29,6 +30,7 @@ export function AssetPage() {
   // Data state
   const [asset, setAsset] = useState<Asset | null>(null);
   const [pictures, setPictures] = useState<PictureEvent[]>([]);
+  const [customerName, setCustomerName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,18 +59,13 @@ export function AssetPage() {
       return;
     }
 
-    if (!isApiConfigured()) {
-      setError('API credentials not configured. Please set VITE_OAUTH_USERNAME and VITE_OAUTH_PASSWORD in .env file.');
-      setLoading(false);
-      return;
-    }
-
     let cancelled = false;
 
     // Reset filters when navigating to a new asset
     setSelectedTypes(new Set(DEFAULT_EVENT_TYPES));
     setSelectedYears(new Set());
     setSelectedEvent(null);
+    setCustomerName(null);
 
     async function loadData() {
       setLoading(true);
@@ -116,6 +113,23 @@ export function AssetPage() {
 
           setAsset(assetData);
           setPictures(allPictures);
+
+          // Resolve the customer's third-party name. Owner from thirdPartyLinks,
+          // falling back to the first non-Hannecard partnerLabels key. '2' is Hannecard.
+          const ownerId =
+            (assetData.thirdPartyLinks ?? [])
+              .find(l => l.relationship === 'OWNER' && l.thirdPartyId !== '2')?.thirdPartyId
+            ?? Object.keys(assetData.partnerLabels ?? {}).find(id => id !== '2');
+
+          if (ownerId) {
+            fetchThirdParty(ownerId)
+              .then(tp => {
+                if (cancelled) return;
+                const name = [tp.name1, tp.name2].filter(Boolean).join(' ').trim();
+                if (name) setCustomerName(name);
+              })
+              .catch(() => { /* non-fatal */ });
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -237,22 +251,36 @@ export function AssetPage() {
           <a href="/">
             <img src="/countroll-logo.svg" alt="Countroll" className="h-5" />
           </a>
-          <form onSubmit={handleSearch} className="flex gap-1">
-            <input
-              type="text"
-              value={searchId}
-              onChange={e => setSearchId(e.target.value)}
-              placeholder="Go to asset..."
-              className="w-28 sm:w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#1DB898]"
-            />
-            <button
-              type="submit"
-              disabled={!searchId.trim()}
-              className="px-2 py-1 text-sm bg-[#1DB898] text-white rounded hover:bg-[#189e83] disabled:opacity-50"
-            >
-              Go
-            </button>
-          </form>
+          <div className="flex items-center gap-3">
+            <form onSubmit={handleSearch} className="flex gap-1">
+              <input
+                type="text"
+                value={searchId}
+                onChange={e => setSearchId(e.target.value)}
+                placeholder="Go to asset..."
+                className="w-28 sm:w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#1DB898]"
+              />
+              <button
+                type="submit"
+                disabled={!searchId.trim()}
+                className="px-2 py-1 text-sm bg-[#1DB898] text-white rounded hover:bg-[#189e83] disabled:opacity-50"
+              >
+                Go
+              </button>
+            </form>
+            {(() => {
+              const user = getCurrentUser();
+              return (
+                <button
+                  onClick={() => logout()}
+                  title={user ? `Signed in as ${user.preferredUsername}` : 'Sign out'}
+                  className="text-xs text-gray-500 hover:text-[#1DB898] px-2 py-1"
+                >
+                  {user?.preferredUsername ? `${user.preferredUsername} · Sign out` : 'Sign out'}
+                </button>
+              );
+            })()}
+          </div>
         </div>
       </nav>
 
@@ -278,6 +306,12 @@ export function AssetPage() {
                         {asset.status.replace(/_/g, ' ')}
                       </span>
                     </div>
+                    {customerName && (
+                      <p className="text-sm text-gray-700 mt-1 truncate">
+                        <span className="text-gray-500">Customer: </span>
+                        <span className="font-medium">{customerName}</span>
+                      </p>
+                    )}
                     <p className="text-gray-500 mt-1 text-sm truncate">
                       {asset.description}
                     </p>

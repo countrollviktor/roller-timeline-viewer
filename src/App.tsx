@@ -1,6 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AssetPage } from './pages/AssetPage';
+import { initAuth, login, type UserInfo } from './api/auth-code';
+import { LoadingSpinner } from './components/LoadingSpinner';
+
+type AuthState =
+  | { status: 'loading' }
+  | { status: 'anonymous' }
+  | { status: 'authenticated'; user: UserInfo };
+
+function LoginScreen() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-emerald-50 flex items-center justify-center p-4">
+      <div className="text-center max-w-md w-full">
+        <div className="mb-8">
+          <img src="/countroll-logo.svg" alt="Countroll" className="w-48 sm:w-64 mx-auto" />
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Roller Timeline Viewer</h1>
+        <p className="text-gray-600 mb-8">Sign in with your Countroll account to view maintenance history.</p>
+        <button
+          onClick={() => login()}
+          className="px-8 py-3 bg-[#1DB898] text-white rounded-lg hover:bg-[#189e83] transition-colors font-medium shadow-sm"
+        >
+          Sign in with Countroll
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function HomePage() {
   const [assetId, setAssetId] = useState('');
@@ -16,13 +43,8 @@ function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-emerald-50 flex items-center justify-center p-4">
       <div className="text-center max-w-md w-full">
-        {/* Countroll Logo */}
         <div className="mb-8">
-          <img
-            src="/countroll-logo.svg"
-            alt="Countroll"
-            className="w-48 sm:w-64 mx-auto"
-          />
+          <img src="/countroll-logo.svg" alt="Countroll" className="w-48 sm:w-64 mx-auto" />
         </div>
 
         <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
@@ -32,7 +54,6 @@ function HomePage() {
           View maintenance history for industrial rubber rollers
         </p>
 
-        {/* Asset ID Form */}
         <form onSubmit={handleSubmit} className="mb-6">
           <div className="flex gap-2">
             <input
@@ -52,7 +73,6 @@ function HomePage() {
           </div>
         </form>
 
-        {/* Sample Asset Link */}
         <div className="text-sm text-gray-500">
           <span>Or try a sample: </span>
           <a
@@ -63,7 +83,6 @@ function HomePage() {
           </a>
         </div>
 
-        {/* Footer */}
         <div className="mt-12 text-xs text-gray-400">
           <p>
             Data from{' '}
@@ -83,6 +102,30 @@ function HomePage() {
 }
 
 function App() {
+  const [auth, setAuth] = useState<AuthState>({ status: 'loading' });
+
+  useEffect(() => {
+    initAuth()
+      .then(user => {
+        if (user) {
+          setAuth({ status: 'authenticated', user });
+        } else {
+          setAuth({ status: 'anonymous' });
+        }
+      })
+      .catch(() => {
+        setAuth({ status: 'anonymous' });
+      });
+  }, []);
+
+  if (auth.status === 'loading') {
+    return <LoadingSpinner message="Signing in..." />;
+  }
+
+  if (auth.status === 'anonymous') {
+    return <LoginScreen />;
+  }
+
   return (
     <BrowserRouter>
       <Routes>

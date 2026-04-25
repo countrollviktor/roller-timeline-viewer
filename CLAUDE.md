@@ -10,15 +10,18 @@ A web app that visualizes maintenance history for industrial rubber rollers on a
 # Install dependencies
 npm install
 
-# Configure credentials (copy and edit .env.example)
+# Configure Keycloak client id (copy and edit .env.example)
 cp .env.example .env
-# Edit .env with your Countroll credentials
+# Edit .env — set VITE_OAUTH_CLIENT_ID to the Countroll Keycloak client id.
 
 # Start development server
 npm run dev
 
 # Build for production
 npm run build
+
+# Run the production server locally (serves dist/ + /api proxy)
+npm start
 ```
 
 Visit http://localhost:5173 (or next available port)
@@ -31,7 +34,8 @@ Visit http://localhost:5173 (or next available port)
 roller-timeline-viewer/
 ├── src/
 │   ├── api/
-│   │   └── countroll.ts        # API client with OAuth2 auth
+│   │   ├── countroll.ts        # API client — relative /api/* calls with Bearer token
+│   │   └── auth-code.ts        # OAuth2 Authorization Code flow against Keycloak (public client)
 │   ├── components/
 │   │   ├── Timeline.tsx        # Main vis-timeline component + tooltip formatting
 │   │   ├── Filters.tsx         # Event type & year filters
@@ -50,6 +54,7 @@ roller-timeline-viewer/
 │   └── index.css               # Tailwind + vis-timeline overrides
 ├── index.html                  # HTML entry (title: "Roller Timeline Viewer")
 ├── .env.example                # Environment variables template
+├── server.js                   # Express production server (serves dist/ + /api proxy) for Azure App Service
 ├── vite.config.ts              # Vite config with API proxy
 ├── public/
 │   ├── vite.svg                # Vite favicon
@@ -148,16 +153,15 @@ roller-timeline-viewer/
 ## API Integration
 
 ### Authentication
-- **Type:** OAuth2 (Keycloak) with password grant
+- **Type:** OAuth2 Authorization Code flow (Keycloak public client — no client secret). Shared client with `countroll-spoken-reception`.
 - **Token URL:** `https://sso.countroll.com/realms/countroll-realm/protocol/openid-connect/token`
-- **Client ID:** countroll-client
-- Token caching with automatic refresh (10s buffer before expiry)
-- Mutex lock prevents concurrent token requests
+- **Client ID:** set via `VITE_OAUTH_CLIENT_ID` — no credentials stored anywhere. Users log in via Keycloak redirect; tokens live in memory only. Keycloak SSO session cookies enable silent re-auth on refresh.
+- The Keycloak client must have this app's origin registered in **Valid Redirect URIs** and **Web Origins** (CORS).
+- Access-token refresh happens browser-direct to Keycloak (no proxy involved). A 30s buffer triggers refresh before expiry. 401 from the API logs the user out.
 
 ### Development Proxy
-In development, Vite proxies API requests to avoid CORS issues:
+In development, Vite proxies only the REST API (Keycloak is reached browser-direct with CORS):
 - `/api/*` → `https://api.countroll.com/api/*`
-- `/auth/*` → `https://sso.countroll.com/*`
 
 ### Endpoints Used
 
@@ -186,15 +190,15 @@ Headers: Authorization: Bearer {token}, Third-Party: {id}
 Create a `.env` file from `.env.example`:
 
 ```env
-# Your Countroll Credentials
-VITE_OAUTH_USERNAME=your_username_here
-VITE_OAUTH_PASSWORD=your_password_here
+# Keycloak public client id (shared with countroll-spoken-reception)
+VITE_OAUTH_CLIENT_ID=your-countroll-client-id
 VITE_THIRD_PARTY_ID=2
 
 # Optional overrides (defaults shown)
-# VITE_COUNTROLL_API_URL=https://api.countroll.com
 # VITE_OAUTH_TOKEN_URL=https://sso.countroll.com/realms/countroll-realm/protocol/openid-connect/token
-# VITE_OAUTH_CLIENT_ID=countroll-client
+
+# Server-side only (read by server.js, never bundled into the browser)
+# COUNTROLL_API_URL=https://api.countroll.com
 ```
 
 ---
@@ -215,10 +219,10 @@ VITE_THIRD_PARTY_ID=2
 
 ## Key Implementation Details
 
-### API Client (countroll.ts)
-- Token caching with 10-second buffer before expiry
-- Mutex lock (`tokenPromise`) prevents concurrent token requests (race condition fix when fetching asset + pictures in parallel)
-- Automatic proxy routing in development mode (`/api` and `/auth` prefixes)
+### API Client (countroll.ts + auth-code.ts)
+- `auth-code.ts` owns the token lifecycle: `initAuth()` on startup (handles the `?code=` callback), `getAccessToken()` refreshes automatically with a 30s buffer, `login()`/`logout()` redirect to Keycloak.
+- `countroll.ts` endpoints call relative `/api/*` paths — the browser never talks to `api.countroll.com` directly. Dev goes through Vite's `/api` proxy; prod goes through `server.js`.
+- 401 from the API calls `logout()` to bounce the user through Keycloak again.
 
 ### Timeline (Timeline.tsx)
 - Items use `type: 'box'` with `align: 'center'` so icons are centered on their exact date
@@ -262,12 +266,27 @@ VITE_THIRD_PARTY_ID=2
 
 ---
 
-## Production Deployment
+## Production Deployment — Azure App Service
 
-For production, you'll need a backend proxy to handle OAuth (credentials shouldn't be exposed in browser). Options:
-1. Deploy behind a reverse proxy (nginx/Apache) that handles auth
-2. Create a simple backend service that proxies authenticated requests
-3. Use a serverless function (Vercel/Netlify) as an auth proxy
+Deploys as a single Node app on the shared App Service plan. No secrets required — the browser obtains tokens directly from Keycloak via the Authorization Code flow.
+
+**Runtime:** Node 20 LTS (Linux). Startup command auto-detected from the `start` script (`node server.js`).
+
+**What `server.js` does:**
+- Serves the built `dist/` folder with SPA fallback.
+- Proxies `/api/*` to `https://api.countroll.com` (configurable via `COUNTROLL_API_URL`, hostname allowlisted).
+- Forwards the caller's `Authorization` and `Third-Party` headers; strips cookies.
+- Exposes `/healthz` for App Service health checks.
+
+**App Service Configuration → Application settings:**
+- `VITE_OAUTH_CLIENT_ID` — the Keycloak client id (shared with countroll-spoken-reception).
+- `VITE_THIRD_PARTY_ID` — typically `2`.
+- `WEBSITE_RUN_FROM_PACKAGE=1` — faster cold starts.
+- `COUNTROLL_API_URL` (optional) — defaults to `https://api.countroll.com`.
+
+**Keycloak setup (one-time):** add the App Service URL (e.g. `https://<app>.azurewebsites.net/*`) to **Valid Redirect URIs** and its origin (without path) to **Web Origins** on the existing Countroll Keycloak client.
+
+**Deploy options:** GitHub Actions (`azure/webapps-deploy@v3` with the App Service publish profile) or `az webapp up`.
 
 ---
 
