@@ -7,11 +7,36 @@ import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import appInsights from 'applicationinsights';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = process.env.PORT || 8080;
 const API_TARGET = process.env.COUNTROLL_API_URL || 'https://api.countroll.com';
+
+// App Insights — shared with hannecard-locations-prod. We tag telemetry with
+// our role name so this app's events are filterable in Log Analytics.
+if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
+  appInsights
+    .setup()
+    .setAutoCollectRequests(false)
+    .setAutoCollectDependencies(false)
+    .setAutoCollectExceptions(true)
+    .setAutoCollectConsole(false)
+    .start();
+  const ctx = appInsights.defaultClient.context;
+  ctx.tags[ctx.keys.cloudRole] = 'roller-timeline-viewer';
+}
+
+function decodeJwtPayload(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    return JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
 
 // Hostname allowlist — prevents accidental proxy to anything but Countroll.
 const ALLOWED_TARGETS = new Set([
@@ -24,10 +49,59 @@ if (!ALLOWED_TARGETS.has(API_TARGET)) {
 }
 
 const app = express();
+app.set('trust proxy', true); // App Service is fronted by an LB — read X-Forwarded-For for req.ip
 app.disable('x-powered-by');
 
 app.get('/healthz', (_req, res) => {
   res.status(200).send('ok');
+});
+
+// Audit: emit one Login event per Keycloak session per container instance.
+// Keyed by sid (Keycloak session id) when present, falling back to sub+iat.
+// Bounded to avoid unbounded growth — tokens rotate so old keys never repeat.
+const seenSessions = new Set();
+const SESSION_CAP = 10_000;
+
+app.use((req, _res, next) => {
+  if (!req.path.startsWith('/api/')) return next();
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) return next();
+
+  const payload = decodeJwtPayload(auth.slice(7));
+  if (!payload) return next();
+
+  const sessionKey = payload.sid ?? `${payload.sub ?? ''}|${payload.iat ?? ''}`;
+  if (!sessionKey || seenSessions.has(sessionKey)) return next();
+
+  seenSessions.add(sessionKey);
+  if (seenSessions.size > SESSION_CAP) {
+    // Set preserves insertion order — drop the oldest entry.
+    seenSessions.delete(seenSessions.values().next().value);
+  }
+
+  const user = payload.preferred_username ?? '';
+  const ip = req.ip ?? req.socket?.remoteAddress ?? '';
+  const userAgent = req.headers['user-agent'] ?? '';
+
+  console.log(`login user=${user} sub=${payload.sub ?? ''} ip=${ip}`);
+
+  if (appInsights.defaultClient) {
+    appInsights.defaultClient.trackEvent({
+      name: 'Login',
+      properties: {
+        user,
+        sub: payload.sub ?? '',
+        email: payload.email ?? '',
+        sid: payload.sid ?? '',
+        jti: payload.jti ?? '',
+        iat: payload.iat ? new Date(payload.iat * 1000).toISOString() : '',
+        ip,
+        userAgent,
+      },
+    });
+  }
+
+  next();
 });
 
 // /api/* -> Countroll. changeOrigin rewrites the Host header to api.countroll.com.

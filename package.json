@@ -14,6 +14,7 @@
     "fetch": "node fetch-asset.js"
   },
   "dependencies": {
+    "applicationinsights": "^3.14.0",
     "express": "^4.22.1",
     "http-proxy-middleware": "^3.0.5",
     "react": "^19.2.0",
