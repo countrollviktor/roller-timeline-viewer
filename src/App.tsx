@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
 import { AssetPage } from './pages/AssetPage';
 import { initAuth, login, type UserInfo } from './api/auth-code';
 import { LoadingSpinner } from './components/LoadingSpinner';
@@ -75,12 +75,12 @@ function HomePage() {
 
         <div className="text-sm text-gray-500">
           <span>Or try a sample: </span>
-          <a
-            href="/asset/6168"
+          <Link
+            to="/asset/6168"
             className="text-[#1DB898] hover:text-[#189e83] font-medium underline"
           >
             Asset 6168
-          </a>
+          </Link>
         </div>
 
         <div className="mt-12 text-xs text-gray-400">
