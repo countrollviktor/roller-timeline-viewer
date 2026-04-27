@@ -14,6 +14,7 @@ const TOKEN_URL =
 const CLIENT_ID = (import.meta.env.VITE_OAUTH_CLIENT_ID || '').trim();
 
 const STATE_KEY = 'auth:state';
+const RETURN_KEY = 'auth:return';
 
 export interface UserInfo {
   name: string;
@@ -56,10 +57,32 @@ function consumeState(): string | null {
   }
 }
 
+function storeReturnPath(path: string): void {
+  try {
+    sessionStorage.setItem(RETURN_KEY, path);
+  } catch {
+    // sessionStorage unavailable — user lands on '/' after login
+  }
+}
+
+function consumeReturnPath(): string | null {
+  try {
+    const path = sessionStorage.getItem(RETURN_KEY);
+    sessionStorage.removeItem(RETURN_KEY);
+    // Only accept same-origin relative paths — guards against an open-redirect
+    // if anything ever wrote to sessionStorage from another context.
+    if (path && path.startsWith('/') && !path.startsWith('//')) return path;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function buildAuthUrl(): string {
   const authEndpoint = TOKEN_URL.replace(/\/token$/, '/auth');
   const state = generateState();
   storeState(state);
+  storeReturnPath(window.location.pathname + window.location.search + window.location.hash);
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     redirect_uri: getRedirectUri(),
@@ -160,6 +183,10 @@ export async function initAuth(): Promise<UserInfo | null> {
 
     try {
       await exchangeCode(code);
+      const returnPath = consumeReturnPath();
+      if (returnPath && returnPath !== '/') {
+        window.history.replaceState({}, '', returnPath);
+      }
       return getCurrentUser();
     } catch {
       // fall through — caller can surface login UI
