@@ -70,31 +70,49 @@ app.use((req, _res, next) => {
   const payload = decodeJwtPayload(auth.slice(7));
   if (!payload) return next();
 
-  const sessionKey = payload.sid ?? `${payload.sub ?? ''}|${payload.iat ?? ''}`;
-  if (!sessionKey || seenSessions.has(sessionKey)) return next();
-
-  seenSessions.add(sessionKey);
-  if (seenSessions.size > SESSION_CAP) {
-    // Set preserves insertion order — drop the oldest entry.
-    seenSessions.delete(seenSessions.values().next().value);
-  }
-
   const user = payload.preferred_username ?? '';
+  const sub = payload.sub ?? '';
   const ip = req.ip ?? req.socket?.remoteAddress ?? '';
   const userAgent = req.headers['user-agent'] ?? '';
 
-  console.log(`login user=${user} sub=${payload.sub ?? ''} ip=${ip}`);
+  // Login: dedupe per session per container instance.
+  const sessionKey = payload.sid ?? `${sub}|${payload.iat ?? ''}`;
+  if (sessionKey && !seenSessions.has(sessionKey)) {
+    seenSessions.add(sessionKey);
+    if (seenSessions.size > SESSION_CAP) {
+      // Set preserves insertion order — drop the oldest entry.
+      seenSessions.delete(seenSessions.values().next().value);
+    }
 
-  if (appInsights.defaultClient) {
+    console.log(`login user=${user} sub=${sub} ip=${ip}`);
+
+    if (appInsights.defaultClient) {
+      appInsights.defaultClient.trackEvent({
+        name: 'Login',
+        properties: {
+          user,
+          sub,
+          email: payload.email ?? '',
+          sid: payload.sid ?? '',
+          jti: payload.jti ?? '',
+          iat: payload.iat ? new Date(payload.iat * 1000).toISOString() : '',
+          ip,
+          userAgent,
+        },
+      });
+    }
+  }
+
+  // AssetLookup: emit one event per /api/thing/{id} hit. No dedupe — repeat
+  // lookups are the engagement signal we want.
+  const assetMatch = req.path.match(/^\/api\/thing\/([^/]+)$/);
+  if (assetMatch && appInsights.defaultClient) {
     appInsights.defaultClient.trackEvent({
-      name: 'Login',
+      name: 'AssetLookup',
       properties: {
         user,
-        sub: payload.sub ?? '',
-        email: payload.email ?? '',
-        sid: payload.sid ?? '',
-        jti: payload.jti ?? '',
-        iat: payload.iat ? new Date(payload.iat * 1000).toISOString() : '',
+        sub,
+        assetId: decodeURIComponent(assetMatch[1]),
         ip,
         userAgent,
       },
