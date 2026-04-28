@@ -116,6 +116,9 @@ function formatTooltip(
 
   // Details grid
   const details: string[] = [];
+  if ((event.type === 'RECOVERED' || event.type === 'REGRINDED') && event.reference) {
+    details.push(`<div><span style="color: #6b7280;">Work Order:</span> ${event.reference}</div>`);
+  }
   if (event.diameter) {
     details.push(`<div><span style="color: #6b7280;">Diameter:</span> ${event.diameter} mm</div>`);
   }
