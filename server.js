@@ -304,6 +304,7 @@ customEvents
          username = tostring(customDimensions["user"])
 | where isnotempty(assetId)
 | summarize views = count(), uniqueUsers = dcount(username), lastViewed = max(timestamp) by assetId
+| project assetId, views, uniqueUsers, lastViewed
 | order by views desc
 | take 25
 `;
