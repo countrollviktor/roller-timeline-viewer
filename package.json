@@ -11,7 +11,8 @@
     "start": "node server.js",
     "lint": "eslint .",
     "preview": "vite preview",
-    "fetch": "node fetch-asset.js"
+    "fetch": "node fetch-asset.js",
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "applicationinsights": "^3.14.0",

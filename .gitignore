@@ -1,7 +1,11 @@
 # Environment files with secrets
 .env
 .env.local
+.env.deploy
 *.local
+
+# Deploy artifact
+deploy.zip
 
 # Azure publish profile credentials
 creds.json

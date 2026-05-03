@@ -286,7 +286,16 @@ Deploys as a single Node app on the shared App Service plan. No secrets required
 
 **Keycloak setup (one-time):** add the App Service URL (e.g. `https://<app>.azurewebsites.net/*`) to **Valid Redirect URIs** and its origin (without path) to **Web Origins** on the existing Countroll Keycloak client.
 
-**Deploy options:** GitHub Actions (`azure/webapps-deploy@v3` with the App Service publish profile) or `az webapp up`.
+**Deploy:** `npm run deploy` (wraps `bash scripts/deploy.sh`). Builds `dist/`, installs prod-only `node_modules`, packages everything into `deploy.zip` via Python's zipfile module, and pushes via Kudu's `/api/zipdeploy`. Restores devDeps after.
+
+> **Why Python instead of `tar -a -cf x.zip`:** Windows' bsdtar produces a TAR archive even with `.zip` extension, and Kudu silently extracts 0 files when handed a tar (deploy returns "RuntimeSuccessful" with empty wwwroot). Don't switch the script away from Python without verifying the zip with `unzip -l` first.
+
+Override target via `.env.deploy` (gitignored):
+
+```sh
+AZURE_RESOURCE_GROUP=hannecard-locations
+AZURE_WEBAPP_NAME=roller-timeline-viewer-prod
+```
 
 ---
 
