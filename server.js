@@ -262,6 +262,37 @@ app.get('/api/stats/headline', async (_req, res) => {
   }
 });
 
+const TREND_KQL = `
+let tz = "Europe/Brussels";
+let windowStart = datetime_local_to_utc(startofday(datetime_utc_to_local(now(), tz)), tz) - 90d;
+customEvents
+| where timestamp >= windowStart
+    and cloud_RoleName == "roller-timeline-viewer-prod"
+    and name in ("Login","AssetLookup")
+| extend localTs = datetime_utc_to_local(timestamp, tz)
+| summarize count_ = count() by name, bucket = bin(localTs, 1d)
+| project dateStr = format_datetime(bucket, "yyyy-MM-dd"), name, count_
+| order by dateStr asc
+`;
+
+app.get('/api/stats/trend', async (_req, res) => {
+  try {
+    const rows = await cachedQuery('trend:90d', TREND_KQL, 90);
+    // Pivot rows ([date, name, count]) into [{date, login, lookup}].
+    const byDate = new Map();
+    for (const [date, name, count] of rows) {
+      const day = byDate.get(date) ?? { date, login: 0, lookup: 0 };
+      const key = name === 'Login' ? 'login' : name === 'AssetLookup' ? 'lookup' : null;
+      if (key) day[key] = (day[key] || 0) + Number(count);
+      byDate.set(date, day);
+    }
+    res.json([...byDate.values()]);
+  } catch (e) {
+    console.error('stats/trend:', e.message);
+    res.status(500).json({ error: 'query failed' });
+  }
+});
+
 // /api/* -> Countroll. changeOrigin rewrites the Host header to api.countroll.com.
 // No xfwd: Countroll's edge rejects X-Forwarded-* from unknown hops with 403.
 // Drop cookies so the browser's session cookie never reaches the upstream.
