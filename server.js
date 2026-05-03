@@ -206,6 +206,62 @@ app.get('/api/stats/me', (req, res) => {
   res.json({ username: req.statsUsername, allowed: true });
 });
 
+// All KQL strings in this file pin to Europe/Brussels because the warehouse
+// + users are in Belgium / France. KQL defaults to UTC for now() /
+// startofday() / bin(); without the conversion, "today" in the headline
+// tile would be 1-2 hours offset from when operators actually worked.
+// datetime_utc_to_local handles DST automatically.
+const HEADLINE_KQL = `
+let tz = "Europe/Brussels";
+let dayStart = datetime_local_to_utc(startofday(datetime_utc_to_local(now(), tz)), tz);
+let windowStart = dayStart - 30d;
+customEvents
+| where timestamp >= windowStart
+    and cloud_RoleName == "roller-timeline-viewer-prod"
+    and name in ("Login","AssetLookup")
+| extend username = tostring(customDimensions["user"]),
+         assetId  = tostring(customDimensions["assetId"])
+| summarize
+    sessionsToday       = countif(name == "Login"       and timestamp >= dayStart),
+    lookupsToday        = countif(name == "AssetLookup" and timestamp >= dayStart),
+    activeToday         = dcountif(username, name == "AssetLookup" and timestamp >= dayStart),
+    distinctAssetsToday = dcountif(assetId, name == "AssetLookup" and timestamp >= dayStart and isnotempty(assetId)),
+    sessions30d         = countif(name == "Login"),
+    lookups30d          = countif(name == "AssetLookup"),
+    active30d           = dcountif(username, name == "AssetLookup"),
+    distinctAssets30d   = dcountif(assetId, name == "AssetLookup" and isnotempty(assetId)),
+    lastEventAt         = max(timestamp)
+| extend
+    sessionsAvg = round(sessions30d / 30.0, 1),
+    lookupsAvg  = round(lookups30d  / 30.0, 1),
+    activeAvg   = round(active30d   / 30.0, 1)
+| project
+    sessionsToday, sessionsAvg, lookupsToday, lookupsAvg,
+    activeToday, activeAvg, distinctAssetsToday, distinctAssets30d,
+    lastEventAt
+`;
+
+app.get('/api/stats/headline', async (_req, res) => {
+  try {
+    const rows = await cachedQuery('headline:30d', HEADLINE_KQL, 30);
+    const r = rows[0] ?? [];
+    res.json({
+      sessionsToday:       Number(r[0] ?? 0),
+      sessionsAvg:         Number(r[1] ?? 0),
+      lookupsToday:        Number(r[2] ?? 0),
+      lookupsAvg:          Number(r[3] ?? 0),
+      activeToday:         Number(r[4] ?? 0),
+      activeAvg:           Number(r[5] ?? 0),
+      distinctAssetsToday: Number(r[6] ?? 0),
+      distinctAssets30d:   Number(r[7] ?? 0),
+      lastEventAt:         r[8] ?? null,
+    });
+  } catch (e) {
+    console.error('stats/headline:', e.message);
+    res.status(500).json({ error: 'query failed' });
+  }
+});
+
 // /api/* -> Countroll. changeOrigin rewrites the Host header to api.countroll.com.
 // No xfwd: Countroll's edge rejects X-Forwarded-* from unknown hops with 403.
 // Drop cookies so the browser's session cookie never reaches the upstream.
