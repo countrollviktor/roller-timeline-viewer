@@ -450,3 +450,13 @@ deploy cycle but does not break anything else.
   `customEvents` within 30-60s. The dashboard may show "today" totals
   that lag the user's actual activity by a minute. Document in the
   dashboard footer ("data may lag ~1 min").
+
+## Implementation notes (post-spec)
+
+- `TOP_ASSETS_KQL` and `USERS_KQL` in the implementation include an
+  explicit `| project ...` clause between `| summarize ... by <key>` and
+  `| order by ...`. This pins column order to defend against Kusto's
+  `summarize` returning aggregations first and group-keys last. Without
+  it, the JS array destructuring in the handlers silently misaligns.
+  Caught in code review for T5; applied retroactively. See commit
+  `255b9ad` and forward.
