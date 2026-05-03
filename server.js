@@ -88,10 +88,9 @@ async function cachedQuery(key, kql, timeRangeDays) {
     );
   }
   const result = await response.json();
-  return (statsCache.set(key, {
-    value: result.tables?.[0]?.rows ?? [],
-    expiresAt: now + STATS_CACHE_TTL_MS,
-  }), statsCache.get(key).value);
+  const value = result.tables?.[0]?.rows ?? [];
+  statsCache.set(key, { value, expiresAt: now + STATS_CACHE_TTL_MS });
+  return value;
 }
 
 // Hostname allowlist — prevents accidental proxy to anything but Countroll.
