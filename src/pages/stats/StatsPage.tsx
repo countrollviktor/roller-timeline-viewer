@@ -7,7 +7,6 @@ import {
 } from '../../api/stats';
 import { logout, getCurrentUser } from '../../api/auth-code';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorState } from '../../components/ErrorState';
 import { HeadlineTiles } from './HeadlineTiles';
 import { TrendChart } from './TrendChart';
 import { TopAssetsTable } from './TopAssetsTable';
@@ -133,10 +132,10 @@ export function StatsPage() {
 function SectionError({ label, message }: { label: string; message: string | null }) {
   if (!message) return null;
   return (
-    <ErrorState
-      title={`Failed to load ${label}`}
-      message={message}
-      suggestion="Click Refresh, or check the App Service logs."
-    />
+    <div className="bg-white rounded-lg border border-red-200 p-4">
+      <div className="text-sm font-semibold text-red-700">Failed to load {label}</div>
+      <div className="text-sm text-red-600 mt-1 break-all">{message}</div>
+      <div className="text-xs text-gray-500 mt-2">Click Refresh, or check the App Service logs.</div>
+    </div>
   );
 }
