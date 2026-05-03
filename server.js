@@ -293,6 +293,36 @@ app.get('/api/stats/trend', async (_req, res) => {
   }
 });
 
+const TOP_ASSETS_KQL = `
+let tz = "Europe/Brussels";
+let windowStart = datetime_local_to_utc(startofday(datetime_utc_to_local(now(), tz)), tz) - 30d;
+customEvents
+| where timestamp >= windowStart
+    and cloud_RoleName == "roller-timeline-viewer-prod"
+    and name == "AssetLookup"
+| extend assetId  = tostring(customDimensions["assetId"]),
+         username = tostring(customDimensions["user"])
+| where isnotempty(assetId)
+| summarize views = count(), uniqueUsers = dcount(username), lastViewed = max(timestamp) by assetId
+| order by views desc
+| take 25
+`;
+
+app.get('/api/stats/top-assets', async (_req, res) => {
+  try {
+    const rows = await cachedQuery('top-assets:30d', TOP_ASSETS_KQL, 30);
+    res.json(rows.map(([assetId, views, uniqueUsers, lastViewed]) => ({
+      assetId: String(assetId ?? ''),
+      views: Number(views ?? 0),
+      uniqueUsers: Number(uniqueUsers ?? 0),
+      lastViewed: lastViewed ?? null,
+    })));
+  } catch (e) {
+    console.error('stats/top-assets:', e.message);
+    res.status(500).json({ error: 'query failed' });
+  }
+});
+
 // /api/* -> Countroll. changeOrigin rewrites the Host header to api.countroll.com.
 // No xfwd: Countroll's edge rejects X-Forwarded-* from unknown hops with 403.
 // Drop cookies so the browser's session cookie never reaches the upstream.
