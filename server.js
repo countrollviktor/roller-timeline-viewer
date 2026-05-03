@@ -324,6 +324,42 @@ app.get('/api/stats/top-assets', async (_req, res) => {
   }
 });
 
+const USERS_KQL = `
+let tz = "Europe/Brussels";
+let windowStart = datetime_local_to_utc(startofday(datetime_utc_to_local(now(), tz)), tz) - 30d;
+customEvents
+| where timestamp >= windowStart
+    and cloud_RoleName == "roller-timeline-viewer-prod"
+    and name in ("Login","AssetLookup")
+| extend username = tostring(customDimensions["user"]),
+         assetId  = tostring(customDimensions["assetId"])
+| where isnotempty(username)
+| summarize
+    sessions   = countif(name == "Login"),
+    lookups    = countif(name == "AssetLookup"),
+    assetsSeen = dcountif(assetId, name == "AssetLookup" and isnotempty(assetId)),
+    lastSeen   = max(timestamp)
+    by username
+| project username, sessions, lookups, assetsSeen, lastSeen
+| order by lookups desc, sessions desc
+`;
+
+app.get('/api/stats/users', async (_req, res) => {
+  try {
+    const rows = await cachedQuery('users:30d', USERS_KQL, 30);
+    res.json(rows.map(([username, sessions, lookups, assetsSeen, lastSeen]) => ({
+      username: String(username ?? ''),
+      sessions: Number(sessions ?? 0),
+      lookups: Number(lookups ?? 0),
+      assetsSeen: Number(assetsSeen ?? 0),
+      lastSeen: lastSeen ?? null,
+    })));
+  } catch (e) {
+    console.error('stats/users:', e.message);
+    res.status(500).json({ error: 'query failed' });
+  }
+});
+
 // /api/* -> Countroll. changeOrigin rewrites the Host header to api.countroll.com.
 // No xfwd: Countroll's edge rejects X-Forwarded-* from unknown hops with 403.
 // Drop cookies so the browser's session cookie never reaches the upstream.
