@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { getStatsAccess } from '../api/stats-access';
 import { fetchAsset, fetchPictures, fetchEventDocuments, fetchDocumentThumbnailUrl, fetchThirdParty } from '../api/countroll';
 import { logout, getCurrentUser } from '../api/auth-code';
 import { Timeline, MAIN_EVENT_TYPES } from '../components/Timeline';
@@ -252,6 +253,14 @@ export function AssetPage() {
             <img src="/countroll-logo.svg" alt="Countroll" className="h-5" />
           </a>
           <div className="flex items-center gap-3">
+            {getStatsAccess() && (
+              <Link
+                to="/stats"
+                className="text-sm text-gray-600 hover:text-[#1DB898] px-2 py-1"
+              >
+                Stats
+              </Link>
+            )}
             <form onSubmit={handleSearch} className="flex gap-1">
               <input
                 type="text"
