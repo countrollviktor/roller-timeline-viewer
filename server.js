@@ -177,6 +177,35 @@ app.use((req, _res, next) => {
   next();
 });
 
+// Stats allowlist gate. Only usernames in STATS_ALLOWLIST may hit
+// /api/stats/*. Reuses decodeJwtPayload so we share JWT handling.
+const STATS_ALLOWLIST = (process.env.STATS_ALLOWLIST || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+function isAllowed(req) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) return { ok: false, username: '' };
+  const payload = decodeJwtPayload(auth.slice(7));
+  if (!payload) return { ok: false, username: '' };
+  const username = payload.preferred_username || '';
+  return { ok: STATS_ALLOWLIST.includes(username), username };
+}
+
+app.use('/api/stats', (req, res, next) => {
+  const { ok, username } = isAllowed(req);
+  if (!ok) {
+    return res.status(403).json({ error: 'not authorized', username });
+  }
+  req.statsUsername = username;
+  next();
+});
+
+app.get('/api/stats/me', (req, res) => {
+  res.json({ username: req.statsUsername, allowed: true });
+});
+
 // /api/* -> Countroll. changeOrigin rewrites the Host header to api.countroll.com.
 // No xfwd: Countroll's edge rejects X-Forwarded-* from unknown hops with 403.
 // Drop cookies so the browser's session cookie never reaches the upstream.
