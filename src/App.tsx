@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
 import { AssetPage } from './pages/AssetPage';
+import { StatsPage } from './pages/stats/StatsPage';
 import { initAuth, login, type UserInfo } from './api/auth-code';
+import { probeStatsAccess } from './api/stats-access';
 import { LoadingSpinner } from './components/LoadingSpinner';
 
 type AuthState =
@@ -106,8 +108,12 @@ function App() {
 
   useEffect(() => {
     initAuth()
-      .then(user => {
+      .then(async user => {
         if (user) {
+          // Fire-and-await: keeps the loading spinner visible until the
+          // probe resolves so the AssetPage nav bar can render the Stats
+          // link synchronously on first paint.
+          await probeStatsAccess();
           setAuth({ status: 'authenticated', user });
         } else {
           setAuth({ status: 'anonymous' });
@@ -131,6 +137,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/asset/:assetId" element={<AssetPage />} />
+        <Route path="/stats" element={<StatsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
