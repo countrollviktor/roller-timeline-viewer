@@ -38,6 +38,62 @@ function decodeJwtPayload(token) {
   }
 }
 
+// Read-only API key for the App Insights component this server queries.
+// Created via `az monitor app-insights api-key create ... --read-properties
+// ReadTelemetry`. Empty string means stats endpoints will 500 with a clear
+// "not configured" error.
+const APPINSIGHTS_API_KEY = process.env.APPINSIGHTS_API_KEY || '';
+
+// Pull the Application ID out of the existing connection string instead of
+// requiring a separate env var. The connection string is already configured
+// for ingestion, so the source of truth is one.
+function appInsightsApplicationId() {
+  const cs = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING || '';
+  const m = /(?:^|;)ApplicationId=([0-9a-f-]{36})(?:;|$)/i.exec(cs);
+  return m ? m[1] : '';
+}
+const APPINSIGHTS_APP_ID = appInsightsApplicationId();
+
+// Trivial TTL cache. 60s is a cheap defense against rapid Refresh-button
+// clicking on the dashboard. Keys are short ("headline:30d", "trend:90d",
+// "top-assets:30d", "users:30d") and there are exactly four, so a Map with
+// no eviction is fine.
+const statsCache = new Map();
+const STATS_CACHE_TTL_MS = 60_000;
+
+async function cachedQuery(key, kql, timeRangeDays) {
+  const now = Date.now();
+  const hit = statsCache.get(key);
+  if (hit && hit.expiresAt > now) return hit.value;
+  if (!APPINSIGHTS_APP_ID || !APPINSIGHTS_API_KEY) {
+    throw new Error(
+      `App Insights query failed (${key}): APPLICATIONINSIGHTS_CONNECTION_STRING / APPINSIGHTS_API_KEY not configured`,
+    );
+  }
+  const response = await fetch(
+    `https://api.applicationinsights.io/v1/apps/${APPINSIGHTS_APP_ID}/query`,
+    {
+      method: 'POST',
+      headers: {
+        'x-api-key': APPINSIGHTS_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: kql, timespan: `P${timeRangeDays}D` }),
+    },
+  );
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `App Insights query failed (${key}): HTTP ${response.status} ${body.slice(0, 200)}`,
+    );
+  }
+  const result = await response.json();
+  return (statsCache.set(key, {
+    value: result.tables?.[0]?.rows ?? [],
+    expiresAt: now + STATS_CACHE_TTL_MS,
+  }), statsCache.get(key).value);
+}
+
 // Hostname allowlist — prevents accidental proxy to anything but Countroll.
 const ALLOWED_TARGETS = new Set([
   'https://api.countroll.com',
