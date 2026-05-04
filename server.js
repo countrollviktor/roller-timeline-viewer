@@ -307,7 +307,7 @@ customEvents
 | summarize viewCount = count(), uniqueUsers = dcount(username), lastViewed = max(timestamp) by assetId
 | project assetId, viewCount, uniqueUsers, lastViewed
 | order by viewCount desc
-| take 25
+| take 200
 `;
 
 app.get('/api/stats/top-assets', async (_req, res) => {
