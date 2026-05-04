@@ -303,9 +303,10 @@ customEvents
 | extend assetId  = tostring(customDimensions["assetId"]),
          username = tostring(customDimensions["user"])
 | where isnotempty(assetId)
-| summarize views = count(), uniqueUsers = dcount(username), lastViewed = max(timestamp) by assetId
-| project assetId, views, uniqueUsers, lastViewed
-| order by views desc
+// "views" parses as a reserved word here — use viewCount in KQL; positional destructure preserves the JSON field.
+| summarize viewCount = count(), uniqueUsers = dcount(username), lastViewed = max(timestamp) by assetId
+| project assetId, viewCount, uniqueUsers, lastViewed
+| order by viewCount desc
 | take 25
 `;
 
