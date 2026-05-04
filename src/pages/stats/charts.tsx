@@ -1,10 +1,10 @@
 /**
- * Hand-rolled SVG StackedBars. Copied from hannecard-hce-stock and
- * trimmed to what the trend chart needs — no Sparkline, no Heatmap.
- * Add them back if a future chart needs them.
+ * Hand-rolled SVG GroupedBars. Originally derived from hannecard-hce-stock
+ * (where it was a stacked variant) and adapted to render side-by-side bars
+ * per slot — easier to compare two series like Sessions vs Lookups.
  */
 
-export interface StackedBarsProps {
+export interface GroupedBarsProps {
   data: { date: string; values: { key: string; value: number; colorClass: string }[] }[];
   width?: number;
   height?: number;
@@ -12,15 +12,19 @@ export interface StackedBarsProps {
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-export function StackedBars({ data, width = 800, height = 196 }: StackedBarsProps) {
+export function GroupedBars({ data, width = 800, height = 196 }: GroupedBarsProps) {
   if (data.length === 0) {
     return <div className="text-sm text-gray-500">No data.</div>;
   }
-  const totals = data.map(d => d.values.reduce((s, v) => s + v.value, 0));
-  const max = Math.max(...totals, 1);
+  const seriesCount = data[0].values.length;
+  const max = Math.max(
+    1,
+    ...data.flatMap(d => d.values.map(v => v.value)),
+  );
   const slotW = width / data.length;
-  const barW = Math.max(slotW * 0.7, 1);
-  const barOffset = (slotW - barW) / 2;
+  const groupW = slotW * 0.85;
+  const subBarW = Math.max(groupW / seriesCount, 1);
+  const groupOffset = (slotW - groupW) / 2;
 
   // Drop a label at every month boundary in the visible window. Three or four
   // labels across 90 days reads cleanly without crowding.
@@ -44,26 +48,25 @@ export function StackedBars({ data, width = 800, height = 196 }: StackedBarsProp
         role="img"
         aria-label="Daily trend"
       >
-        {data.map((d, i) => {
-          let yCursor = height;
-          const x = i * slotW + barOffset;
-          return d.values.map((v, j) => {
+        {data.map((d, i) =>
+          d.values.map((v, j) => {
             const h = (v.value / max) * height;
-            yCursor -= h;
+            const x = i * slotW + groupOffset + j * subBarW;
+            const y = height - h;
             return (
               <rect
                 key={`${d.date}-${v.key}-${j}`}
                 x={x}
-                y={yCursor}
-                width={barW}
+                y={y}
+                width={subBarW}
                 height={h}
                 className={v.colorClass}
               >
                 <title>{`${d.date} — ${v.key}: ${v.value}`}</title>
               </rect>
             );
-          });
-        })}
+          }),
+        )}
       </svg>
       <div className="relative h-5 mt-1">
         {labels.map(l => (

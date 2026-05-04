@@ -1,5 +1,5 @@
 import type { TrendDay } from '../../api/stats';
-import { StackedBars } from './charts';
+import { GroupedBars } from './charts';
 
 const TREND_DAYS = 90;
 
@@ -46,7 +46,7 @@ export function TrendChart({ data }: { data: TrendDay[] }) {
           </span>
         </div>
       </div>
-      <StackedBars data={bars} />
+      <GroupedBars data={bars} />
     </div>
   );
 }
